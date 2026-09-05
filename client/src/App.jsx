@@ -423,18 +423,39 @@ export default function App() {
     return loadedList.filter((r) => r.probe && r.probe.alive === false).length;
   }, [loadedList]);
 
+  const walletStats = useMemo(() => {
+    let walletCount = 0;
+    let walletSiteCount = 0;
+    loadedList.forEach((item) => {
+      const btc = item.probe?.wallets?.btc || [];
+      if (btc.length > 0) {
+        walletCount += btc.length;
+        walletSiteCount++;
+      }
+    });
+    return { walletCount, walletSiteCount };
+  }, [loadedList]);
+
   const displayedResults = useMemo(() => {
     return loadedList.filter((item) => {
       if (activeFilter === 'alive' && item.probe?.alive !== true) return false;
       if (activeFilter === 'dead' && (!item.probe || item.probe.alive !== false)) return false;
       if (activeFilter === 'unprobed' && item.probe !== null) return false;
+      if (activeFilter === 'wallets') {
+        const btc = item.probe?.wallets?.btc || [];
+        const eth = item.probe?.wallets?.eth || [];
+        const xmr = item.probe?.wallets?.xmr || [];
+        if (btc.length === 0 && eth.length === 0 && xmr.length === 0) return false;
+      }
 
       if (filterText.trim()) {
         const needle = filterText.toLowerCase();
         const matchTitle = (item.title || '').toLowerCase().includes(needle);
         const matchDesc = (item.description || '').toLowerCase().includes(needle);
         const matchOnion = (item.onion || '').toLowerCase().includes(needle);
-        return matchTitle || matchDesc || matchOnion;
+        const btcList = (item.probe?.wallets?.btc || []).join(' ').toLowerCase();
+        const matchWallet = btcList.includes(needle);
+        return matchTitle || matchDesc || matchOnion || matchWallet;
       }
 
       return true;
@@ -563,6 +584,8 @@ export default function App() {
                   probedCount={probedCount}
                   aliveCount={aliveCount}
                   deadCount={deadCount}
+                  walletCount={walletStats.walletCount}
+                  walletSiteCount={walletStats.walletSiteCount}
                   probingActive={probingActive}
                   currentProbingUrl={currentProbingUrl}
                   onTriggerProbeAll={handleReProbeAll}

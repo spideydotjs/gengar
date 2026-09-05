@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pause, CheckCircle, XCircle, Zap, Search, Activity } from 'lucide-react';
+import { Pause, CheckCircle, XCircle, Zap, Search, Activity, Coins } from 'lucide-react';
 
 export default function StatsBar({
   totalIndexed,
@@ -7,6 +7,8 @@ export default function StatsBar({
   probedCount,
   aliveCount,
   deadCount,
+  walletCount = 0,
+  walletSiteCount = 0,
   probingActive,
   currentProbingUrl,
   onTriggerProbeAll,
@@ -56,13 +58,15 @@ export default function StatsBar({
           <div className="text-lg font-bold text-emerald-300 mt-0.5">{aliveCount}</div>
         </div>
 
-        {/* Offline */}
-        <div className="p-3.5 rounded-xl bg-rose-950/20 border border-rose-900/40">
-          <div className="text-[11px] text-rose-400 uppercase flex items-center gap-1">
-            <XCircle className="w-3.5 h-3.5 text-rose-400" />
-            <span>Offline</span>
+        {/* Crypto Wallets Found */}
+        <div className="p-3.5 rounded-xl bg-amber-950/20 border border-amber-900/40">
+          <div className="text-[11px] text-amber-400 uppercase flex items-center gap-1">
+            <Coins className="w-3.5 h-3.5 text-amber-400" />
+            <span>BTC Wallets</span>
           </div>
-          <div className="text-lg font-bold text-rose-300 mt-0.5">{deadCount}</div>
+          <div className="text-lg font-bold text-amber-300 mt-0.5">
+            {walletCount} <span className="text-xs text-zinc-500 font-normal">({walletSiteCount} sites)</span>
+          </div>
         </div>
 
         {/* Probe Control Button */}
@@ -94,7 +98,7 @@ export default function StatsBar({
           <div className="flex flex-wrap items-center justify-between gap-2 text-zinc-400">
             <div className="flex items-center gap-2 text-cyan-300 truncate max-w-xl">
               <Activity className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
-              <span className="font-semibold text-white">Live Tor SOCKS5 Probe:</span>
+              <span className="font-semibold text-white">Tor Probe & Wallet Extraction:</span>
               <span className="text-zinc-400 truncate text-[11px]">
                 {currentProbingUrl || 'Connecting to onion circuit...'}
               </span>
@@ -136,6 +140,20 @@ export default function StatsBar({
             <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
             Online ({aliveCount})
           </button>
+
+          {/* With Wallets Filter */}
+          <button
+            onClick={() => setActiveFilter('wallets')}
+            className={`px-3 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 ${
+              activeFilter === 'wallets'
+                ? 'bg-amber-950/80 border-amber-500 text-amber-200 font-semibold shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-amber-300'
+            }`}
+          >
+            <Coins className="w-3.5 h-3.5 text-amber-400" />
+            <span>With Wallets ({walletSiteCount})</span>
+          </button>
+
           <button
             onClick={() => setActiveFilter('dead')}
             className={`px-3 py-1.5 rounded-lg border transition-colors flex items-center gap-1 ${
@@ -166,7 +184,7 @@ export default function StatsBar({
             type="text"
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
-            placeholder="Filter list..."
+            placeholder="Filter list or wallet..."
             className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-purple-500"
           />
         </div>

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Copy, Check, RefreshCw, Globe, Clock, AlertTriangle, Camera, ExternalLink } from 'lucide-react';
+import { Copy, Check, RefreshCw, Globe, Clock, AlertTriangle, Camera, ExternalLink, Coins, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function ResultCard({ item, index, onReProbe, onCaptureScreenshot, onOpenSnapshot }) {
   const [copied, setCopied] = useState(false);
+  const [copiedWallet, setCopiedWallet] = useState(null);
+  const [showWallets, setShowWallets] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const probe = item.probe;
 
@@ -10,6 +12,13 @@ export default function ResultCard({ item, index, onReProbe, onCaptureScreenshot
     navigator.clipboard.writeText(item.onion);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyWallet = (e, addr) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(addr);
+    setCopiedWallet(addr);
+    setTimeout(() => setCopiedWallet(null), 2000);
   };
 
   const handleScreenshotClick = async () => {
@@ -32,15 +41,22 @@ export default function ResultCard({ item, index, onReProbe, onCaptureScreenshot
   const isProbing = probe?.status === 'probing';
   const displayTitle = probe?.title || item.title || 'Untitled Hidden Service';
 
+  const btcWallets = probe?.wallets?.btc || [];
+  const ethWallets = probe?.wallets?.eth || [];
+  const xmrWallets = probe?.wallets?.xmr || [];
+  const hasCrypto = btcWallets.length > 0 || ethWallets.length > 0 || xmrWallets.length > 0;
+
   return (
     <div className={`rounded-xl border p-5 font-mono text-xs flex flex-col justify-between transition-all ${
-      isAlive
-        ? 'bg-zinc-900/90 border-emerald-900/50 hover:border-emerald-500/50 shadow-[0_4px_20px_rgba(16,185,129,0.08)]'
-        : isDead
-          ? 'bg-zinc-900/50 border-rose-950/40 opacity-80 hover:opacity-100 hover:border-rose-800/40'
-          : isProbing
-            ? 'bg-zinc-900 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
-            : 'bg-zinc-900/80 border-zinc-800 hover:border-purple-500/40'
+      hasCrypto
+        ? 'bg-zinc-900/95 border-amber-500/40 shadow-[0_4px_25px_rgba(245,158,11,0.08)]'
+        : isAlive
+          ? 'bg-zinc-900/90 border-emerald-900/50 hover:border-emerald-500/50 shadow-[0_4px_20px_rgba(16,185,129,0.08)]'
+          : isDead
+            ? 'bg-zinc-900/50 border-rose-950/40 opacity-80 hover:opacity-100 hover:border-rose-800/40'
+            : isProbing
+              ? 'bg-zinc-900 border-cyan-500/50 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
+              : 'bg-zinc-900/80 border-zinc-800 hover:border-purple-500/40'
     }`}>
       <div>
         {/* Top Header */}
@@ -145,6 +161,92 @@ export default function ResultCard({ item, index, onReProbe, onCaptureScreenshot
             {item.onion}
           </span>
         </div>
+
+        {/* Crypto Wallet Alert Badge if detected */}
+        {hasCrypto && (
+          <div className="mt-3 p-2.5 rounded-lg bg-amber-950/30 border border-amber-500/40 text-xs">
+            <div
+              className="flex items-center justify-between cursor-pointer select-none"
+              onClick={() => setShowWallets(!showWallets)}
+            >
+              <div className="flex items-center gap-2 text-amber-300 font-bold">
+                <Coins className="w-4 h-4 text-amber-400 animate-bounce" />
+                <span>
+                  {btcWallets.length > 0 && `${btcWallets.length} Bitcoin (BTC)`}
+                  {ethWallets.length > 0 && ` • ${ethWallets.length} ETH`}
+                  {xmrWallets.length > 0 && ` • ${xmrWallets.length} XMR`} Wallet(s) Found
+                </span>
+              </div>
+              <button className="text-amber-400 hover:text-white">
+                {showWallets ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+            </div>
+
+            {/* Wallets List Expanded */}
+            {showWallets && (
+              <div className="mt-2.5 pt-2 border-t border-amber-900/40 space-y-1.5">
+                {btcWallets.map((wallet) => (
+                  <div key={wallet} className="flex items-center justify-between p-1.5 rounded bg-black/60 border border-amber-900/40 text-[11px] gap-2">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold">BTC</span>
+                      <span className="text-amber-200 truncate select-all">{wallet}</span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <a
+                        href={`https://mempool.space/address/${wallet}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-amber-300"
+                        title="View on Mempool Blockchain Explorer"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                      <button
+                        onClick={(e) => handleCopyWallet(e, wallet)}
+                        className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white"
+                        title="Copy BTC address"
+                      >
+                        {copiedWallet === wallet ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {ethWallets.map((wallet) => (
+                  <div key={wallet} className="flex items-center justify-between p-1.5 rounded bg-black/60 border border-amber-900/40 text-[11px] gap-2">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 text-[9px] font-bold">ETH</span>
+                      <span className="text-cyan-200 truncate select-all">{wallet}</span>
+                    </div>
+                    <button
+                      onClick={(e) => handleCopyWallet(e, wallet)}
+                      className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white shrink-0"
+                      title="Copy ETH address"
+                    >
+                      {copiedWallet === wallet ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                  </div>
+                ))}
+
+                {xmrWallets.map((wallet) => (
+                  <div key={wallet} className="flex items-center justify-between p-1.5 rounded bg-black/60 border border-amber-900/40 text-[11px] gap-2">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span className="px-1 py-0.2 rounded bg-orange-500/20 text-orange-300 text-[9px] font-bold">XMR</span>
+                      <span className="text-orange-200 truncate select-all">{wallet}</span>
+                    </div>
+                    <button
+                      onClick={(e) => handleCopyWallet(e, wallet)}
+                      className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white shrink-0"
+                      title="Copy Monero address"
+                    >
+                      {copiedWallet === wallet ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Screenshot Image Preview if captured */}
         {probe?.screenshot && (

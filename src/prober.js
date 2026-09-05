@@ -10,6 +10,7 @@
 
 const cheerio  = require('cheerio');
 const { torGet } = require('./torClient');
+const { extractWallets } = require('./walletScanner');
 
 /**
  * probeOnion(url, timeout?)
@@ -24,6 +25,7 @@ const { torGet } = require('./torClient');
  *   status:    number|null,
  *   title:     string|null,
  *   latencyMs: number|null,
+ *   wallets:   { btc: string[], eth: string[], xmr: string[], total: number, hasWallets: boolean },
  *   error:     string|null
  * }>}
  */
@@ -34,11 +36,14 @@ async function probeOnion(url, timeout = 25) {
     const res       = await torGet(url, { timeout, maxRedirects: 5 });
     const latencyMs = Date.now() - start;
 
-    // Try to extract page title
-    let title = null;
+    // Try to extract page title & crypto wallets
+    let title   = null;
+    let wallets = { btc: [], eth: [], xmr: [], total: 0, hasWallets: false };
+
     if (typeof res.data === 'string') {
       const $ = cheerio.load(res.data);
       title   = $('title').first().text().trim() || null;
+      wallets = extractWallets(res.data);
     }
 
     return {
@@ -47,6 +52,7 @@ async function probeOnion(url, timeout = 25) {
       status   : res.status,
       title,
       latencyMs,
+      wallets,
       error    : null,
     };
   } catch (err) {
@@ -59,6 +65,7 @@ async function probeOnion(url, timeout = 25) {
       status,
       title    : null,
       latencyMs: status ? latencyMs : null,  // no latency if we never connected
+      wallets  : { btc: [], eth: [], xmr: [], total: 0, hasWallets: false },
       error    : err.message,
     };
   }

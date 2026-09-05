@@ -82,6 +82,10 @@ async function captureScreenshot(url, options = {}) {
     const pageTitle = (await page.title().catch(() => '')) || url;
     const httpStatus = res ? res.status() : 200;
 
+    const pageHtml = await page.content().catch(() => '');
+    const { extractWallets } = require('./walletScanner');
+    const wallets = extractWallets(pageHtml);
+
     const item = {
       id: hash,
       url,
@@ -89,6 +93,7 @@ async function captureScreenshot(url, options = {}) {
       status: httpStatus,
       filename,
       screenshotUrl: `/screenshots/${filename}`,
+      wallets,
       capturedAt: new Date().toISOString(),
     };
 
