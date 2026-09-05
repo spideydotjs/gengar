@@ -4,6 +4,7 @@ client/node_modules/
 
 # Production build
 client/dist/
+screenshots/
 
 # Logs & Environment
 *.log

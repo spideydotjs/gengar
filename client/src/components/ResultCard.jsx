@@ -1,14 +1,30 @@
 import React, { useState } from 'react';
-import { Copy, Check, RefreshCw, Globe, Clock, AlertTriangle } from 'lucide-react';
+import { Copy, Check, RefreshCw, Globe, Clock, AlertTriangle, Camera, ExternalLink } from 'lucide-react';
 
-export default function ResultCard({ item, index, onReProbe }) {
+export default function ResultCard({ item, index, onReProbe, onCaptureScreenshot, onOpenSnapshot }) {
   const [copied, setCopied] = useState(false);
+  const [capturing, setCapturing] = useState(false);
   const probe = item.probe;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(item.onion);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleScreenshotClick = async () => {
+    if (probe?.screenshot) {
+      onOpenSnapshot?.({
+        screenshotUrl: probe.screenshot,
+        title: probe.title || item.title,
+        url: item.onion,
+      });
+      return;
+    }
+    if (!onCaptureScreenshot) return;
+    setCapturing(true);
+    await onCaptureScreenshot(item.onion);
+    setCapturing(false);
   };
 
   const isAlive = probe?.alive === true;
@@ -68,6 +84,23 @@ export default function ResultCard({ item, index, onReProbe }) {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-1.5">
+            {/* Snapshot button */}
+            {isAlive && (
+              <button
+                onClick={handleScreenshotClick}
+                disabled={capturing}
+                title={probe?.screenshot ? 'View screenshot' : 'Take screenshot'}
+                className={`flex items-center gap-1 px-2 py-1 rounded border text-[11px] transition-colors ${
+                  probe?.screenshot
+                    ? 'bg-purple-950/80 border-purple-600/60 text-purple-300 hover:bg-purple-900/60'
+                    : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
+                }`}
+              >
+                <Camera className={`w-3 h-3 ${capturing ? 'animate-spin' : ''}`} />
+                <span>{probe?.screenshot ? 'Snapshot' : 'Capture'}</span>
+              </button>
+            )}
+
             <button
               onClick={() => onReProbe?.(item.onion)}
               disabled={isProbing}
@@ -112,6 +145,26 @@ export default function ResultCard({ item, index, onReProbe }) {
             {item.onion}
           </span>
         </div>
+
+        {/* Screenshot Image Preview if captured */}
+        {probe?.screenshot && (
+          <div
+            className="mt-3 relative rounded-lg overflow-hidden border border-purple-800/40 bg-black/60 aspect-video cursor-pointer group"
+            onClick={handleScreenshotClick}
+          >
+            <img
+              src={probe.screenshot}
+              alt={displayTitle}
+              className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-200"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span className="px-2 py-1 rounded bg-purple-600 text-white text-[10px] font-bold flex items-center gap-1">
+                <ExternalLink className="w-3 h-3" /> View Full Screenshot
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Description snippet */}
         {item.description && (

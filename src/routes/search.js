@@ -11,6 +11,7 @@ const express  = require('express');
 const { searchAhmia }  = require('../ahmia');
 const { probeMany, probeOnion } = require('../prober');
 const { checkTorConnectivity }  = require('../torClient');
+const { captureScreenshot, listScreenshots, deleteScreenshot } = require('../screenshot');
 
 const router = express.Router();
 
@@ -189,6 +190,22 @@ router.post('/probe', async (req, res) => {
     const results = await probeMany(targets, { timeout, concurrency: 5 });
     const alive   = results.filter(r => r.alive).length;
 
+    // Capture visual screenshots for all alive hidden services
+    for (const r of results) {
+      if (r.alive) {
+        try {
+          const snap = await captureScreenshot(r.url, { timeout: 25 });
+          if (snap.success) {
+            r.screenshot = snap.screenshotUrl;
+            r.screenshotId = snap.id;
+            if (snap.title && (!r.title || r.title === 'Untitled')) {
+              r.title = snap.title;
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
     res.json({
       success: true,
       total  : results.length,
@@ -196,6 +213,65 @@ router.post('/probe', async (req, res) => {
       dead   : results.length - alive,
       results,
     });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── GET /api/screenshots ───────────────────────────────────────────
+/**
+ * @route  GET /api/screenshots
+ * @desc   List all captured dark-web site screenshots
+ */
+router.get('/screenshots', (req, res) => {
+  try {
+    const screenshots = listScreenshots();
+    res.json({
+      success: true,
+      count: screenshots.length,
+      screenshots,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── POST /api/screenshot ───────────────────────────────────────────
+/**
+ * @route  POST /api/screenshot
+ * @desc   Capture a screenshot for a specific .onion URL on demand
+ * @body   { url: string, timeout?: number }
+ */
+router.post('/screenshot', async (req, res) => {
+  const { url, timeout = 30 } = req.body || {};
+
+  if (!url || !url.includes('.onion')) {
+    return res.status(400).json({
+      success: false,
+      error: 'Provide a valid .onion URL in body: { "url": "http://abc.onion" }',
+    });
+  }
+
+  try {
+    const snap = await captureScreenshot(url, { timeout });
+    if (!snap.success) {
+      return res.status(502).json({ success: false, error: snap.error || 'Failed to capture screenshot' });
+    }
+    res.json({ success: true, screenshot: snap });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── DELETE /api/screenshot/:id ─────────────────────────────────────
+/**
+ * @route  DELETE /api/screenshot/:id
+ * @desc   Delete a captured screenshot by hash or filename
+ */
+router.delete('/screenshot/:id', (req, res) => {
+  try {
+    const deleted = deleteScreenshot(req.params.id);
+    res.json({ success: deleted });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

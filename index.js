@@ -44,6 +44,13 @@ if (fs.existsSync(clientDist)) {
   app.use(express.static(clientDist));
 }
 
+// ── Static Screenshots ─────────────────────────────────────────────
+const screenshotsDir = path.join(__dirname, 'screenshots');
+if (!fs.existsSync(screenshotsDir)) {
+  fs.mkdirSync(screenshotsDir, { recursive: true });
+}
+app.use('/screenshots', express.static(screenshotsDir));
+
 // ── Health check endpoint ──────────────────────────────────────────
 const healthPayload = {
   tool: 'Gengar',
