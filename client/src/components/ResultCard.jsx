@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Copy, Check, RefreshCw, Globe, Clock, AlertTriangle, Camera, ExternalLink, Coins, ChevronDown, ChevronUp } from 'lucide-react';
 
-export default function ResultCard({ item, index, onReProbe, onCaptureScreenshot, onOpenSnapshot }) {
+export default function ResultCard({ item, index, onReProbe, onCaptureScreenshot, onOpenSnapshot, onDeepScan }) {
   const [copied, setCopied] = useState(false);
   const [copiedWallet, setCopiedWallet] = useState(null);
   const [showWallets, setShowWallets] = useState(false);
@@ -117,11 +117,23 @@ export default function ResultCard({ item, index, onReProbe, onCaptureScreenshot
               </button>
             )}
 
+            {/* Deep Scan button */}
+            {isAlive && (
+              <button
+                onClick={() => onDeepScan?.(item.onion)}
+                title="Deep scan this .onion for blockchain wallets & NLP intelligence"
+                className="flex items-center gap-1 px-2 py-1 rounded bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/30 hover:border-amber-400 text-amber-300 transition-colors text-[11px] cursor-pointer"
+              >
+                <Coins className="w-3 h-3 text-amber-400" />
+                <span>Deep Scan</span>
+              </button>
+            )}
+
             <button
               onClick={() => onReProbe?.(item.onion)}
               disabled={isProbing}
               title="Probe this hidden service"
-              className="flex items-center gap-1 px-2 py-1 rounded bg-zinc-950 hover:bg-purple-950/60 border border-zinc-800 hover:border-purple-800 text-zinc-400 hover:text-purple-300 transition-colors text-[11px] disabled:opacity-50"
+              className="flex items-center gap-1 px-2 py-1 rounded bg-zinc-950 hover:bg-purple-950/60 border border-zinc-800 hover:border-purple-800 text-zinc-400 hover:text-purple-300 transition-colors text-[11px] disabled:opacity-50 cursor-pointer"
             >
               <RefreshCw className={`w-3 h-3 ${isProbing ? 'animate-spin' : ''}`} />
               <span>Probe</span>
@@ -243,6 +255,20 @@ export default function ResultCard({ item, index, onReProbe, onCaptureScreenshot
                     </button>
                   </div>
                 ))}
+
+                {/* Direct link to deep NLP scraper tab */}
+                <div className="pt-2 border-t border-amber-900/40 flex items-center justify-between">
+                  <span className="text-[10px] text-amber-400/80">Need full site crawl & NLP intent?</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeepScan?.(item.onion);
+                    }}
+                    className="px-2 py-1 rounded bg-amber-500 hover:bg-amber-400 text-black font-bold text-[10px] flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <span>Run Deep NLP Crawl →</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>

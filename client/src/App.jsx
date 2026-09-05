@@ -6,14 +6,16 @@ import StatsBar from './components/StatsBar';
 import ResultCard from './components/ResultCard';
 import LiveConsole from './components/LiveConsole';
 import ScreenshotsGallery from './components/ScreenshotsGallery';
-import { Loader2, AlertCircle, Terminal, Camera, ListFilter, ExternalLink } from 'lucide-react';
+import BlockchainScraper from './components/BlockchainScraper';
+import { Loader2, AlertCircle, Terminal, Camera, ListFilter, ExternalLink, Coins } from 'lucide-react';
 
 export default function App() {
   const [torStatus, setTorStatus] = useState(null);
   const [checkingTor, setCheckingTor] = useState(false);
 
-  // Active Main View Tab: 'results' | 'screenshots' | 'logs'
+  // Active Main View Tab: 'results' | 'blockchain' | 'screenshots' | 'logs'
   const [activeTab, setActiveTab] = useState('results');
+  const [selectedBlockchainUrl, setSelectedBlockchainUrl] = useState('');
 
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -406,6 +408,11 @@ export default function App() {
     }
   };
 
+  const handleDeepCryptoScan = (onionUrl) => {
+    setSelectedBlockchainUrl(onionUrl);
+    setActiveTab('blockchain');
+  };
+
   // ── Metrics Computation ─────────────────────────────────────────────
   const loadedList = useMemo(() => {
     return rawResults.slice(0, probeLimit);
@@ -501,6 +508,23 @@ export default function App() {
             {rawResults.length > 0 && (
               <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-[10px]">
                 {loadedList.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('blockchain')}
+            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${
+              activeTab === 'blockchain'
+                ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-black font-bold shadow-[0_0_15px_rgba(245,158,11,0.4)]'
+                : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-amber-300'
+            }`}
+          >
+            <Coins className={`w-4 h-4 ${activeTab === 'blockchain' ? 'text-black' : 'text-amber-400'}`} />
+            <span>Blockchain OSINT</span>
+            {walletStats.walletCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full bg-black/40 text-amber-300 border border-amber-500/40 text-[10px]">
+                {walletStats.walletCount}
               </span>
             )}
           </button>
@@ -605,6 +629,7 @@ export default function App() {
                       onReProbe={handleSingleReProbe}
                       onCaptureScreenshot={handleCaptureScreenshot}
                       onOpenSnapshot={setLightboxSnapshot}
+                      onDeepScan={handleDeepCryptoScan}
                     />
                   ))}
                 </div>
@@ -630,7 +655,15 @@ export default function App() {
           </>
         )}
 
-        {/* TAB 2: SCREENSHOTS GALLERY */}
+        {/* TAB 2: BLOCKCHAIN & CRYPTO OSINT SCRAPER */}
+        {activeTab === 'blockchain' && (
+          <BlockchainScraper
+            defaultUrl={selectedBlockchainUrl}
+            onNavigateToSearch={() => setActiveTab('results')}
+          />
+        )}
+
+        {/* TAB 3: SCREENSHOTS GALLERY */}
         {activeTab === 'screenshots' && (
           <ScreenshotsGallery
             screenshots={screenshots}

@@ -12,6 +12,7 @@ const { searchAhmia }  = require('../ahmia');
 const { probeMany, probeOnion } = require('../prober');
 const { checkTorConnectivity }  = require('../torClient');
 const { captureScreenshot, listScreenshots, deleteScreenshot } = require('../screenshot');
+const { scrapeBlockchainSite, listDossiers, getDossier } = require('../blockchainScraper');
 
 const router = express.Router();
 
@@ -272,6 +273,103 @@ router.delete('/screenshot/:id', (req, res) => {
   try {
     const deleted = deleteScreenshot(req.params.id);
     res.json({ success: deleted });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── POST /api/blockchain-scan ──────────────────────────────────────
+/**
+ * @route  POST /api/blockchain-scan
+ * @desc   Crawl a .onion site recursively for crypto wallets with NLP intent classification
+ * @body   { url: string, maxPages?: number, timeout?: number }
+ */
+router.post('/blockchain-scan', async (req, res) => {
+  const { url, maxPages = 5, timeout = 25 } = req.body || {};
+
+  if (!url || !url.includes('.onion')) {
+    return res.status(400).json({
+      success: false,
+      error: 'Provide a valid .onion URL in body: { "url": "http://abc.onion" }',
+    });
+  }
+
+  try {
+    const dossier = await scrapeBlockchainSite(url, { maxPages, timeout });
+    res.json({ success: true, dossier });
+  } catch (err) {
+    console.error('[Gengar /blockchain-scan] Error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── GET /api/blockchain-scan/stream ────────────────────────────────
+/**
+ * @route  GET /api/blockchain-scan/stream?url=<onionUrl>&maxPages=5&timeout=25
+ * @desc   SSE stream for real-time crawler logs and discovered wallets
+ */
+router.get('/blockchain-scan/stream', async (req, res) => {
+  const url = (req.query.url || '').trim();
+  const maxPages = parseInt(req.query.maxPages, 10) || 5;
+  const timeout = parseInt(req.query.timeout, 10) || 25;
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders?.();
+
+  const sendEvent = (step, data) => {
+    res.write(`data: ${JSON.stringify({ step, ...data, timestamp: new Date().toLocaleTimeString() })}\n\n`);
+  };
+
+  if (!url || !url.includes('.onion')) {
+    sendEvent('ERROR', { error: 'Valid .onion URL required.' });
+    return res.end();
+  }
+
+  try {
+    const dossier = await scrapeBlockchainSite(url, {
+      maxPages,
+      timeout,
+      onProgress: (step, data) => {
+        sendEvent(step, data);
+      }
+    });
+
+    sendEvent('FINISH', { success: true, dossier });
+    res.end();
+  } catch (err) {
+    sendEvent('ERROR', { error: err.message });
+    res.end();
+  }
+});
+
+// ── GET /api/blockchain-scans ──────────────────────────────────────
+/**
+ * @route  GET /api/blockchain-scans
+ * @desc   List previously completed blockchain OSINT dossiers
+ */
+router.get('/blockchain-scans', (req, res) => {
+  try {
+    const dossiers = listDossiers();
+    res.json({ success: true, count: dossiers.length, dossiers });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── GET /api/blockchain-scan/:id ───────────────────────────────────
+/**
+ * @route  GET /api/blockchain-scan/:id
+ * @desc   Get full dossier details for a specific scan ID
+ */
+router.get('/blockchain-scan/:id', (req, res) => {
+  try {
+    const dossier = getDossier(req.params.id);
+    if (!dossier) {
+      return res.status(404).json({ success: false, error: 'Dossier not found' });
+    }
+    res.json({ success: true, dossier });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
