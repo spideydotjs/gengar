@@ -86,6 +86,41 @@ npm run build
 - **Real-Time Telemetry**: Instant feedback on HTTP response status, millisecond latency, live HTML page title, and connection errors.
 - **Live Stats & Filters**: Summary counter for online vs offline nodes with instant filters (`All`, `Online`, `Offline`, `Unprobed`) and text filtering.
 - **Minimalist Cyberpunk Aesthetics**: Deep obsidian dark theme with violet accents, glow indicators, and JetBrains Mono typography.
+- **Dedicated Blockchain OSINT Scraper**: Deep recursive crawler traversing internal `.onion` subpages with NLP contextual intent classification (`ESCROW_DEPOSIT`, `DONATION`, `COMMERCE_PAYMENT`, `RANSOM_EXTORTION`, `VENDOR_BOND`, `EXCHANGE_MIXER`) and PGP/identity extraction.
+
+---
+
+## 🕵️‍♂️ Crypto Forensics & Criminal Correlation TUI App
+
+Launch the full-screen terminal investigator for on-chain forensic tracking, criminal correlation, and evidence collection:
+
+```bash
+# Launch interactive TUI
+npm run tracker
+
+# Or trace a specific target directly
+node bin/gengar-tracker.js <bitcoin_address>
+```
+
+### Forensic Features
+- **Transaction Ledger Tracking**: Real-time UTXO, inputs/outputs, fee rates, and transfer directions powered by dual Mempool & Blockstream engines.
+- **Criminal Actor Correlation**: Cross-references targets against known ransomware syndicates (WannaCry, LockBit, BlackCat), darknet markets (Silk Road, Hydra, AlphaBay), and OFAC sanctioned mixers (Blender.io, ChipMixer).
+- **Multi-Input Common-Ownership Clustering**: Identifies co-spent addresses controlled by the same criminal actor.
+- **Darknet Heuristics**: Automated detection of money-laundering **peeling chains** and **CoinJoin mixer signatures**.
+- **Darknet Onion Cross-Linker**: Automatically correlates on-chain wallet addresses with Gengar's `.onion` web crawler dossiers, linking physical hidden services, PGP keys, and NLP context.
+- **Tamper-Evident Evidence Vault**: Generates legal Chain of Custody records and cryptographically sealed SHA-256 evidence dossiers stored in `data/evidence/CASE-YYYY-XXXX.json`.
+
+### TUI Keyboard Controls
+| Key | Action |
+|---|---|
+| `[S]` | **Scan Target**: Enter custom address or pick preset criminal cases |
+| `[T]` / `[Enter]` | **Trace Tx**: Inspect inputs, outputs, and counterparty routing |
+| `[C]` | **Correlate**: Re-run criminal cluster & threat intelligence analysis |
+| `[N]` | **Add Note**: Record examiner observation & re-seal evidence file |
+| `[E]` | **Seal Evidence**: View cryptographic SHA-256 certificate & Chain of Custody |
+| `[D]` | **Gengar Scans**: Select wallets discovered by Gengar `.onion` web crawler |
+| `[Tab]` | **Cycle Panels**: Switch focus between Ledger, Cluster, Details, and Logs |
+| `[Q]` | **Quit**: Exit the forensics terminal |
 
 ---
 

@@ -13,6 +13,14 @@ const { probeMany, probeOnion } = require('../prober');
 const { checkTorConnectivity }  = require('../torClient');
 const { captureScreenshot, listScreenshots, deleteScreenshot } = require('../screenshot');
 const { scrapeBlockchainSite, listDossiers, getDossier } = require('../blockchainScraper');
+const {
+  fetchAddressOverview,
+  fetchAddressTransactions,
+  analyzeTransactionsForensics,
+  correlateThreatIntel,
+  correlateWithGengarDarknet,
+  EvidenceManager,
+} = require('../cryptoForensics');
 
 const router = express.Router();
 
@@ -370,6 +378,125 @@ router.get('/blockchain-scan/:id', (req, res) => {
       return res.status(404).json({ success: false, error: 'Dossier not found' });
     }
     res.json({ success: true, dossier });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── FORENSICS & CRIMINAL CORRELATION ENDPOINTS ─────────────────────
+
+// ── POST /api/forensics/track ──────────────────────────────────────
+/**
+ * @route  POST /api/forensics/track
+ * @desc   Perform on-chain forensic tracking, clustering, and criminal correlation
+ * @body   { address: string, examiner?: string }
+ */
+router.post('/forensics/track', async (req, res) => {
+  const { address, examiner = 'OPERATOR_API' } = req.body || {};
+
+  if (!address || typeof address !== 'string' || address.trim().length < 25) {
+    return res.status(400).json({ success: false, error: 'Provide a valid cryptocurrency address in body' });
+  }
+
+  const cleanAddr = address.trim();
+
+  try {
+    const overview = await fetchAddressOverview(cleanAddr);
+    const rawTxs = await fetchAddressTransactions(cleanAddr, 35);
+    const analysis = analyzeTransactionsForensics(cleanAddr, rawTxs);
+    const threats = correlateThreatIntel(cleanAddr, analysis.coSpentAddresses, analysis.counterparties);
+    const darknetMatch = correlateWithGengarDarknet(cleanAddr);
+
+    const caseDossier = EvidenceManager.saveCaseDossier({
+      targetAddress: cleanAddr,
+      leadExaminer: examiner,
+      threatScore: threats.threatScore,
+      overview,
+      correlatedThreats: threats.matches,
+      darknetCorrelation: darknetMatch,
+      clusteredAddresses: analysis.coSpentAddresses,
+      ledger: analysis.ledger,
+      examinerNotes: [`Initial forensic trace executed at ${new Date().toISOString()}`],
+    });
+
+    res.json({
+      success: true,
+      caseId: caseDossier.caseId,
+      evidenceSeal: caseDossier.evidenceSeal,
+      threatScore: threats.threatScore,
+      overview,
+      threats: threats.matches,
+      darknetMatch,
+      clusteredAddresses: analysis.coSpentAddresses,
+      counterparties: analysis.counterparties,
+      peelingChainsCount: analysis.peelingChainsCount,
+      coinJoinsCount: analysis.coinJoinsCount,
+      ledger: analysis.ledger,
+      caseDossier,
+    });
+  } catch (err) {
+    console.error('[Gengar /forensics/track] Error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── GET /api/forensics/cases ───────────────────────────────────────
+/**
+ * @route  GET /api/forensics/cases
+ * @desc   List all sealed forensic evidence cases
+ */
+router.get('/forensics/cases', (req, res) => {
+  try {
+    const cases = EvidenceManager.listCases();
+    res.json({ success: true, count: cases.length, cases });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── GET /api/forensics/case/:id ────────────────────────────────────
+/**
+ * @route  GET /api/forensics/case/:id
+ * @desc   Get full case record by case ID
+ */
+router.get('/forensics/case/:id', (req, res) => {
+  try {
+    const caseRecord = EvidenceManager.getCase(req.params.id);
+    if (!caseRecord) {
+      return res.status(404).json({ success: false, error: 'Case not found' });
+    }
+    res.json({ success: true, case: caseRecord });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── POST /api/forensics/case/note ──────────────────────────────────
+/**
+ * @route  POST /api/forensics/case/note
+ * @desc   Append examiner observation to a case and re-seal cryptographic hash
+ * @body   { caseId: string, note: string, examiner?: string }
+ */
+router.post('/forensics/case/note', (req, res) => {
+  const { caseId, note, examiner = 'OPERATOR_API' } = req.body || {};
+
+  if (!caseId || !note) {
+    return res.status(400).json({ success: false, error: 'Provide caseId and note in body' });
+  }
+
+  try {
+    const existing = EvidenceManager.getCase(caseId);
+    if (!existing) {
+      return res.status(404).json({ success: false, error: 'Case not found' });
+    }
+
+    const updatedNotes = [...(existing.examinerNotes || []), `[${new Date().toISOString()} by ${examiner}] ${note}`];
+    const updated = EvidenceManager.saveCaseDossier({
+      ...existing,
+      examinerNotes: updatedNotes,
+    });
+
+    res.json({ success: true, caseId, evidenceSeal: updated.evidenceSeal, notes: updatedNotes });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
