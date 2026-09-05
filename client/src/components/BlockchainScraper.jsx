@@ -6,7 +6,7 @@ import {
   Flame, Zap, Filter, ArrowRight
 } from 'lucide-react';
 
-export default function BlockchainScraper({ defaultUrl = '', onNavigateToSearch }) {
+export default function BlockchainScraper({ defaultUrl = '', onNavigateToSearch, onForensicTrace }) {
   const [targetUrl, setTargetUrl] = useState(defaultUrl);
   const [depth, setDepth] = useState(5);
   const [scanning, setScanning] = useState(false);
@@ -644,6 +644,17 @@ export default function BlockchainScraper({ defaultUrl = '', onNavigateToSearch 
                           <ExternalLink className="w-3 h-3" />
                           <span>Explorer</span>
                         </a>
+
+                        {wallet.coin === 'BTC' && (
+                          <button
+                            onClick={() => onForensicTrace?.(wallet.address)}
+                            className="px-2 py-1 rounded bg-red-950/70 hover:bg-red-900 border border-red-600/50 text-red-300 hover:text-white flex items-center gap-1 transition-colors text-[11px] cursor-pointer"
+                            title="Trace criminal network in Forensics engine"
+                          >
+                            <Shield className="w-3 h-3 text-red-400" />
+                            <span>Forensics</span>
+                          </button>
+                        )}
                       </div>
                     </div>
 

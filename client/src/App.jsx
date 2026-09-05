@@ -7,15 +7,17 @@ import ResultCard from './components/ResultCard';
 import LiveConsole from './components/LiveConsole';
 import ScreenshotsGallery from './components/ScreenshotsGallery';
 import BlockchainScraper from './components/BlockchainScraper';
-import { Loader2, AlertCircle, Terminal, Camera, ListFilter, ExternalLink, Coins } from 'lucide-react';
+import CryptoForensics from './components/CryptoForensics';
+import { Loader2, AlertCircle, Terminal, Camera, ListFilter, ExternalLink, Coins, ShieldAlert } from 'lucide-react';
 
 export default function App() {
   const [torStatus, setTorStatus] = useState(null);
   const [checkingTor, setCheckingTor] = useState(false);
 
-  // Active Main View Tab: 'results' | 'blockchain' | 'screenshots' | 'logs'
+  // Active Main View Tab: 'results' | 'blockchain' | 'forensics' | 'screenshots' | 'logs'
   const [activeTab, setActiveTab] = useState('results');
   const [selectedBlockchainUrl, setSelectedBlockchainUrl] = useState('');
+  const [selectedForensicAddress, setSelectedForensicAddress] = useState('');
 
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -413,6 +415,11 @@ export default function App() {
     setActiveTab('blockchain');
   };
 
+  const handleForensicTrace = (cryptoAddress) => {
+    setSelectedForensicAddress(cryptoAddress);
+    setActiveTab('forensics');
+  };
+
   // ── Metrics Computation ─────────────────────────────────────────────
   const loadedList = useMemo(() => {
     return rawResults.slice(0, probeLimit);
@@ -530,6 +537,21 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => setActiveTab('forensics')}
+            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${
+              activeTab === 'forensics'
+                ? 'bg-gradient-to-r from-red-600 to-red-500 text-white font-bold shadow-[0_0_15px_rgba(239,68,68,0.4)]'
+                : 'bg-zinc-900 border border-zinc-700 text-zinc-300 hover:text-red-300'
+            }`}
+          >
+            <ShieldAlert className="w-4 h-4 text-red-400" />
+            <span>Crypto Forensics</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-red-950 text-red-300 border border-red-700 text-[10px] font-bold">
+              EVIDENCE
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('screenshots')}
             className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
               activeTab === 'screenshots'
@@ -630,6 +652,7 @@ export default function App() {
                       onCaptureScreenshot={handleCaptureScreenshot}
                       onOpenSnapshot={setLightboxSnapshot}
                       onDeepScan={handleDeepCryptoScan}
+                      onForensicTrace={handleForensicTrace}
                     />
                   ))}
                 </div>
@@ -660,10 +683,18 @@ export default function App() {
           <BlockchainScraper
             defaultUrl={selectedBlockchainUrl}
             onNavigateToSearch={() => setActiveTab('results')}
+            onForensicTrace={handleForensicTrace}
           />
         )}
 
-        {/* TAB 3: SCREENSHOTS GALLERY */}
+        {/* TAB 3: CRYPTO FORENSICS & CRIMINAL CORRELATION */}
+        {activeTab === 'forensics' && (
+          <CryptoForensics
+            initialTarget={selectedForensicAddress}
+          />
+        )}
+
+        {/* TAB 4: SCREENSHOTS GALLERY */}
         {activeTab === 'screenshots' && (
           <ScreenshotsGallery
             screenshots={screenshots}

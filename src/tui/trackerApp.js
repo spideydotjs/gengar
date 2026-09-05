@@ -33,7 +33,7 @@ function startTrackerTUI(initialAddress) {
     tags: true,
     style: {
       fg: 'white',
-      bg: '#18181b',
+      bg: 'black',
     },
   });
 
@@ -43,9 +43,9 @@ function startTrackerTUI(initialAddress) {
     tags: true,
     border: { type: 'line' },
     style: {
-      border: { fg: '#f59e0b' },
+      border: { fg: 'yellow', bold: true },
       fg: 'white',
-      bg: '#09090b',
+      bg: 'black',
     },
     content: '{yellow-fg}No target loaded. Press [S] to scan target.{/yellow-fg}',
   });
@@ -59,11 +59,11 @@ function startTrackerTUI(initialAddress) {
     scrollbar: { ch: ' ', bg: 'magenta' },
     border: { type: 'line' },
     style: {
-      border: { fg: '#ef4444' },
+      border: { fg: 'red', bold: true },
       fg: 'white',
-      bg: '#09090b',
+      bg: 'black',
     },
-    content: '{gray-fg}Awaiting scan to cross-reference with OFAC, Darknet Markets, and Gengar .onion dossiers...{/gray-fg}',
+    content: '{white-fg}Awaiting scan to cross-reference with OFAC, Darknet Markets, and Gengar .onion dossiers...{/white-fg}',
   });
 
   // 4. Clustered Addresses / Multi-Input Heuristic (Rows: 8..11, Cols: 0..4)
@@ -75,12 +75,12 @@ function startTrackerTUI(initialAddress) {
     scrollable: true,
     border: { type: 'line' },
     style: {
-      border: { fg: '#8b5cf6' },
-      selected: { bg: '#8b5cf6', fg: 'white', bold: true },
+      border: { fg: 'magenta', bold: true },
+      selected: { bg: 'magenta', fg: 'white', bold: true },
       fg: 'white',
-      bg: '#09090b',
+      bg: 'black',
     },
-    items: ['{gray-fg}No co-spent addresses identified yet.{/gray-fg}'],
+    items: ['{white-fg}No co-spent addresses identified yet.{/white-fg}'],
   });
 
   // 5. Transaction Ledger Table (Rows: 1..7, Cols: 4..12)
@@ -91,7 +91,7 @@ function startTrackerTUI(initialAddress) {
     selectedBg: 'cyan',
     interactive: true,
     label: ' 📜 Forensic Transaction Ledger ',
-    border: { type: 'line', fg: 'cyan' },
+    border: { type: 'line', fg: 'cyan', bold: true },
     columnSpacing: 2,
     columnWidth: [19, 14, 8, 14, 10, 24],
     headers: ['TIMESTAMP', 'TX HASH', 'TYPE', 'AMOUNT (BTC)', 'FEE (BTC)', 'FORENSIC SIGNAL'],
@@ -105,11 +105,11 @@ function startTrackerTUI(initialAddress) {
     alwaysScroll: true,
     border: { type: 'line' },
     style: {
-      border: { fg: '#06b6d4' },
+      border: { fg: 'cyan', bold: true },
       fg: 'white',
-      bg: '#09090b',
+      bg: 'black',
     },
-    content: '{gray-fg}Select a transaction from ledger to inspect inputs, outputs, and counterparty routing.{/gray-fg}',
+    content: '{white-fg}Select a transaction from ledger to inspect inputs, outputs, and counterparty routing.{/white-fg}',
   });
 
   // 7. Forensic Log & Evidence Vault Stream (Rows: 7..10, Cols: 8..12)
@@ -117,7 +117,7 @@ function startTrackerTUI(initialAddress) {
     fg: 'green',
     selectedFg: 'green',
     label: ' 📋 Forensic Audit Stream & Evidence Vault ',
-    border: { type: 'line', fg: 'green' },
+    border: { type: 'line', fg: 'green', bold: true },
     bufferLength: 50,
   });
 
@@ -126,8 +126,8 @@ function startTrackerTUI(initialAddress) {
     content: ' {bold}[S]{/bold} Scan Target  {bold}[T]{/bold} Trace Tx  {bold}[C]{/bold} Correlate  {bold}[N]{/bold} Add Note  {bold}[E]{/bold} Seal Evidence  {bold}[L]{/bold} Locker  {bold}[D]{/bold} Gengar Scans  {bold}[Tab]{/bold} Switch Panel  {bold}[Q]{/bold} Quit',
     tags: true,
     style: {
-      fg: 'black',
-      bg: '#a1a1aa',
+      fg: 'white',
+      bg: 'blue',
       bold: true,
     },
   });
@@ -208,7 +208,7 @@ function startTrackerTUI(initialAddress) {
       content += `{bold}{red-fg}🚨 CRIMINAL ENTITY CORRELATIONS ({bold}${state.threats.matches.length}{/bold}){/red-fg}{/bold}\n`;
       state.threats.matches.forEach(m => {
         content += `  • {bold}${m.entity}{/bold} [{yellow-fg}${m.category}{/yellow-fg}] Risk: {red-fg}${m.risk}%{/red-fg}\n`;
-        content += `    {gray-fg}${m.notes}{/gray-fg}\n`;
+        content += `    {white-fg}${m.notes}{/white-fg}\n`;
       });
     } else {
       content += `{green-fg}✓ No direct OFAC or known ransomware cluster matches in database.{/green-fg}\n`;
@@ -221,13 +221,13 @@ function startTrackerTUI(initialAddress) {
       content += `  • Clustered Wallets: {yellow-fg}${state.analysis.coSpentAddresses.length}{/yellow-fg}\n`;
     }
 
-    threatBox.setContent(content || '{gray-fg}No threat intelligence matched.{/gray-fg}');
+    threatBox.setContent(content || '{white-fg}No threat intelligence matched.{/white-fg}');
     screen.render();
   }
 
   function updateClusterView() {
     if (!state.analysis || state.analysis.coSpentAddresses.length === 0) {
-      clusterBox.setItems(['{gray-fg}No co-spent addresses detected.{/gray-fg}']);
+      clusterBox.setItems(['{white-fg}No co-spent addresses detected.{/white-fg}']);
     } else {
       const items = state.analysis.coSpentAddresses.map((addr, i) => {
         return `{bold}#${i + 1}{/bold} {cyan-fg}${addr}{/cyan-fg}`;
@@ -277,7 +277,7 @@ function startTrackerTUI(initialAddress) {
 
   function updateTxDetail(index = 0) {
     if (!state.analysis || !state.analysis.ledger[index]) {
-      txDetailBox.setContent('{gray-fg}No transaction selected.{/gray-fg}');
+      txDetailBox.setContent('{white-fg}No transaction selected.{/white-fg}');
       screen.render();
       return;
     }
@@ -393,8 +393,8 @@ function startTrackerTUI(initialAddress) {
       height: '60%',
       border: { type: 'line' },
       style: {
-        border: { fg: '#f59e0b' },
-        bg: '#18181b',
+        border: { fg: 'yellow', bold: true },
+        bg: 'black',
       },
       tags: true,
       label: ' 🎯 Target Bitcoin Address Selector ',
@@ -450,8 +450,8 @@ function startTrackerTUI(initialAddress) {
       keys: true,
       border: { type: 'line' },
       style: {
-        border: { fg: '#8b5cf6' },
-        selected: { bg: '#8b5cf6', fg: 'white', bold: true },
+        border: { fg: 'magenta', bold: true },
+        selected: { bg: 'magenta', fg: 'white', bold: true },
         fg: 'white',
         bg: 'black',
       },
@@ -473,7 +473,7 @@ function startTrackerTUI(initialAddress) {
       content: '  [ SCAN TARGET ]',
       style: {
         bg: '#f59e0b',
-        fg: 'black',
+        fg: 'white',
         bold: true,
         focus: { bg: '#fbbf24' },
       },
@@ -520,8 +520,8 @@ function startTrackerTUI(initialAddress) {
       height: '40%',
       border: { type: 'line' },
       style: {
-        border: { fg: '#06b6d4' },
-        bg: '#18181b',
+        border: { fg: 'cyan', bold: true },
+        bg: 'black',
       },
       tags: true,
       label: ' 📝 Add Forensic Examiner Note to Case File ',
@@ -551,7 +551,7 @@ function startTrackerTUI(initialAddress) {
       content: '  [ SEAL IN CASE ]',
       style: {
         bg: 'cyan',
-        fg: 'black',
+        fg: 'white',
         bold: true,
         focus: { bg: '#67e8f9' },
       },
@@ -597,7 +597,7 @@ function startTrackerTUI(initialAddress) {
       border: { type: 'line' },
       style: {
         border: { fg: '#10b981' },
-        bg: '#09090b',
+        bg: 'black',
       },
       tags: true,
       label: ' 🔒 Cryptographic Evidence Certificate & Chain of Custody ',
@@ -621,7 +621,7 @@ function startTrackerTUI(initialAddress) {
     });
 
     content += `\n{bold}EVIDENCE LOCATION:{/bold} data/evidence/${c.caseId}.json\n`;
-    content += `{gray-fg}Admissible under Federal Rules of Evidence Rule 902(13)/(14) (Certified Records Generated by an Electronic Process).{/gray-fg}\n\n`;
+    content += `{white-fg}Admissible under Federal Rules of Evidence Rule 902(13)/(14) (Certified Records Generated by an Electronic Process).{/white-fg}\n\n`;
     content += `Press [Escape] or [Enter] to return to forensics terminal.`;
 
     modal.setContent(content);
@@ -645,8 +645,8 @@ function startTrackerTUI(initialAddress) {
       height: '70%',
       border: { type: 'line' },
       style: {
-        border: { fg: '#8b5cf6' },
-        bg: '#18181b',
+        border: { fg: 'magenta', bold: true },
+        bg: 'black',
       },
       tags: true,
       label: ' 🌐 Discovered Darknet Wallets from Gengar .onion Scraper ',
@@ -692,7 +692,7 @@ function startTrackerTUI(initialAddress) {
       border: { type: 'line' },
       style: {
         border: { fg: '#a855f7' },
-        selected: { bg: '#8b5cf6', fg: 'white', bold: true },
+        selected: { bg: 'magenta', fg: 'white', bold: true },
         fg: 'white',
         bg: 'black',
       },

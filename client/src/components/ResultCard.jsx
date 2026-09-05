@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Copy, Check, RefreshCw, Globe, Clock, AlertTriangle, Camera, ExternalLink, Coins, ChevronDown, ChevronUp } from 'lucide-react';
 
-export default function ResultCard({ item, index, onReProbe, onCaptureScreenshot, onOpenSnapshot, onDeepScan }) {
+export default function ResultCard({ item, index, onReProbe, onCaptureScreenshot, onOpenSnapshot, onDeepScan, onForensicTrace }) {
   const [copied, setCopied] = useState(false);
   const [copiedWallet, setCopiedWallet] = useState(null);
   const [showWallets, setShowWallets] = useState(false);
@@ -213,6 +213,16 @@ export default function ResultCard({ item, index, onReProbe, onCaptureScreenshot
                       >
                         <ExternalLink className="w-3 h-3" />
                       </a>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onForensicTrace?.(wallet);
+                        }}
+                        className="px-1.5 py-0.5 rounded bg-red-950/80 hover:bg-red-900 border border-red-600/50 text-red-300 hover:text-white text-[10px] font-bold cursor-pointer"
+                        title="Trace criminal network & transactions in Forensics"
+                      >
+                        Trace
+                      </button>
                       <button
                         onClick={(e) => handleCopyWallet(e, wallet)}
                         className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white"
