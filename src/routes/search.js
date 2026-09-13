@@ -68,7 +68,8 @@ router.get('/search/stream', async (req, res) => {
 
   try {
     sendEvent('log', { tag: 'INIT', message: `Initializing dark-web search for "${query}"` });
-    sendEvent('log', { tag: 'TOR', message: 'Routing socket through Tor SOCKS5 circuit (127.0.0.1:9050)...' });
+    const torTarget = process.env.TOR_SOCKS || 'socks5h://127.0.0.1:9050';
+    sendEvent('log', { tag: 'TOR', message: `Routing socket through Tor SOCKS5 circuit (${torTarget})...` });
 
     const searchResult = await searchAhmia(query, {
       page,
