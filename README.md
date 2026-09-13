@@ -22,14 +22,48 @@ HTTP Request
 
 ---
 
-## Prerequisites
+## 🐳 Quick Start with Docker Compose (Recommended)
+
+Get the complete stack up and running in a single command — with Tor proxy, headless Playwright Chromium, Express API, and the React Web UI fully pre-configured:
+
+```bash
+# Clone the repository
+git clone https://github.com/spideydotjs/gengar.git
+cd gengar
+
+# Spin up Tor proxy and Gengar in isolated containers
+docker compose up -d
+```
+
+Open **[http://localhost:6700](http://localhost:6700)** in your browser!
+
+### Running the TUI Forensic Tracker in Docker
+```bash
+docker compose exec -it gengar npm run tracker
+```
+
+### Useful Docker Commands
+```bash
+# View live logs
+docker compose logs -f
+
+# Check container health and status
+docker compose ps
+
+# Stop containers
+docker compose down
+```
+
+---
+
+## 🛠️ Manual / Local Prerequisites (Without Docker)
 
 | Requirement | Details |
 |---|---|
 | **Tor** | Must be running locally on `127.0.0.1:9050` (SOCKS5) |
-| **Node.js** | ≥ 18 |
+| **Node.js** | ≥ 20 |
 
-### Start Tor
+### Start Tor Locally
 
 ```bash
 # Ubuntu / Debian
@@ -231,11 +265,12 @@ curl -X POST http://127.0.0.1:6700/api/probe \
 
 ## Environment Variables
 
-| Variable | Default | Description |
+| Variable | Default (Local / Docker) | Description |
 |---|---|---|
-| `PORT` | `6700` | API listen port |
-| `HOST` | `127.0.0.1` | Bind address |
-| `TOR_SOCKS` | `socks5h://127.0.0.1:9050` | Tor SOCKS5 proxy URL |
+| `PORT` | `6700` | API & Web UI listen port |
+| `HOST` | `0.0.0.0` | Bind address |
+| `TOR_SOCKS` | `socks5h://127.0.0.1:9050` (Local) / `socks5h://tor:9050` (Docker) | Tor SOCKS5 proxy URL |
+| `TOR_HOST_PORT` | `9052` | Host port mapped to the Docker Tor SOCKS5 container (avoids port 9050 conflicts) |
 
 ---
 

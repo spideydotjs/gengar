@@ -28,7 +28,7 @@ const { closeBrowser } = require('./src/ahmia');
 
 // ── Config ─────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 6700;  // 6666 is browser-blocked (ERR_UNSAFE_PORT)
-const HOST = process.env.HOST || '127.0.0.1';   // localhost only by default
+const HOST = process.env.HOST || '0.0.0.0';
 const TOR_SOCK = process.env.TOR_SOCKS || 'socks5h://127.0.0.1:9050';
 
 // ── App ────────────────────────────────────────────────────────────

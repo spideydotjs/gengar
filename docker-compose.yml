@@ -1,0 +1,56 @@
+services:
+  # ── Tor SOCKS5 Proxy Service ──────────────────────────────────────────
+  tor:
+    build:
+      context: .
+      dockerfile: docker/tor/Dockerfile
+    image: gengar-tor:latest
+    container_name: gengar-tor
+    restart: unless-stopped
+    ports:
+      # Expose Tor SOCKS5 proxy to host (default 9052 to avoid conflict with local host Tor on 9050)
+      - "${TOR_HOST_PORT:-9052}:9050"
+    networks:
+      - gengar-net
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 9050 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 3s
+
+  # ── Gengar OSINT Web & Investigation Engine ───────────────────────────
+  gengar:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: gengar-app:latest
+    container_name: gengar-app
+    restart: unless-stopped
+    depends_on:
+      tor:
+        condition: service_healthy
+    ports:
+      # Expose Gengar Web UI & API
+      - "6700:6700"
+    environment:
+      - NODE_ENV=production
+      - PORT=6700
+      - HOST=0.0.0.0
+      - TOR_SOCKS=socks5h://tor:9050
+    volumes:
+      # Persistent storage for captured screenshots, OSINT dossiers & evidence cases
+      - ./screenshots:/app/screenshots
+      - ./data:/app/data
+    networks:
+      - gengar-net
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:6700/api/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  gengar-net:
+    driver: bridge
