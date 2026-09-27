@@ -2,6 +2,9 @@
 
 <div align="center">
 
+<img src="docs/assets/banner.png" alt="Gengar Banner" width="100%" />
+<br/><br/>
+
 [![CI](https://github.com/spideydotjs/gengar/actions/workflows/ci.yml/badge.svg)](https://github.com/spideydotjs/gengar/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/badge/Node.js-%3E%3D20-brightgreen.svg?logo=node.js)](https://nodejs.org)
