@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Key, Shield, Fingerprint, Globe, User, Calendar, ExternalLink,
-  Copy, Check, Search, AlertCircle, RefreshCw, X, Hash, ChevronRight, Lock
+  Copy, Check, Search, AlertCircle, RefreshCw, X, Hash, ChevronRight, Lock,
+  Share2, AtSign, Cpu, CheckCircle2, XCircle
 } from 'lucide-react';
 
 export default function PgpInspectorModal({ fingerprint, initialKeyData, onClose, onNavigateToSite }) {
@@ -50,15 +51,15 @@ export default function PgpInspectorModal({ fingerprint, initialKeyData, onClose
     if (!activeFingerprint || checkingKeyserver) return;
     setCheckingKeyserver(true);
     try {
-      const res = await fetch(`/api/pgp/keyserver/${activeFingerprint}`);
+      const res = await fetch(`/api/pgp/federation/${activeFingerprint}`);
       const json = await res.json();
       if (json.success) {
         setKeyserverResult(json);
       } else {
-        setKeyserverResult({ found: false, error: json.error || 'Keyserver check failed' });
+        setKeyserverResult({ foundAny: false, error: json.error || 'Federation check failed' });
       }
     } catch (err) {
-      setKeyserverResult({ found: false, error: err.message });
+      setKeyserverResult({ foundAny: false, error: err.message });
     } finally {
       setCheckingKeyserver(false);
     }
@@ -252,12 +253,12 @@ export default function PgpInspectorModal({ fingerprint, initialKeyData, onClose
                 )}
               </div>
 
-              {/* Public Keyserver Intelligence */}
+              {/* Federated Clearnet Keyserver & WKD Intelligence */}
               <div className="p-4 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2 text-zinc-300 font-bold text-[12px]">
                     <Search className="w-4 h-4 text-emerald-400" />
-                    <span>PUBLIC KEYSERVER VERIFICATION (TOR-ROUTED)</span>
+                    <span>FEDERATED KEYSERVER & WKD CROSS-REFERENCE (TOR)</span>
                   </div>
 
                   <button
@@ -265,33 +266,164 @@ export default function PgpInspectorModal({ fingerprint, initialKeyData, onClose
                     disabled={checkingKeyserver}
                     className="px-3 py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-700/60 text-emerald-300 font-bold text-[11px] flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                   >
-                    {checkingKeyserver ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Lock className="w-3 h-3" />}
-                    <span>{checkingKeyserver ? 'Querying Tor...' : 'Check keys.openpgp.org'}</span>
+                    {checkingKeyserver ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Share2 className="w-3 h-3" />}
+                    <span>{checkingKeyserver ? 'Querying Tor Federation...' : 'Deep Federated Scan'}</span>
                   </button>
                 </div>
 
                 <p className="text-zinc-500 text-[11px]">
-                  Queries clearnet OpenPGP verifying keyservers via Tor to uncover if this darknet key was ever publicly registered with a clearnet email address.
+                  Queries clearnet OpenPGP federated infrastructure over Tor: SKS (Ubuntu), Hagrid (keys.openpgp.org), Keybase Social Identity graph, and Web Key Directory (WKD) domain verification.
                 </p>
 
                 {keyserverResult && (
-                  <div className={`p-3 rounded-lg border ${keyserverResult.found ? 'bg-emerald-950/30 border-emerald-700/60 text-emerald-200' : 'bg-zinc-900 border-zinc-800 text-zinc-400'}`}>
-                    {keyserverResult.found ? (
-                      <div className="space-y-1">
-                        <div className="font-bold flex items-center gap-1.5 text-emerald-400">
-                          <Check className="w-4 h-4" />
-                          <span>KEY FOUND ON CLEARNET KEYSERVER ({keyserverResult.keyserver})</span>
+                  <div className="space-y-3 pt-1">
+                    {/* Federation Status Badges */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px]">
+                      {/* keys.openpgp.org */}
+                      <div className={`p-2 rounded-lg border flex flex-col justify-between ${
+                        keyserverResult.federatedKeyservers?.keysOpenPgp?.found
+                          ? 'bg-emerald-950/40 border-emerald-600/50 text-emerald-300'
+                          : 'bg-black/40 border-zinc-800 text-zinc-500'
+                      }`}>
+                        <div className="font-bold">keys.openpgp.org</div>
+                        <div className="flex items-center gap-1 mt-1">
+                          {keyserverResult.federatedKeyservers?.keysOpenPgp?.found ? (
+                            <><CheckCircle2 className="w-3 h-3 text-emerald-400" /><span>Verified (VKS)</span></>
+                          ) : (
+                            <><XCircle className="w-3 h-3 text-zinc-600" /><span>Not Listed</span></>
+                          )}
                         </div>
-                        {keyserverResult.userIds && keyserverResult.userIds.length > 0 && (
-                          <div className="text-[11px] pt-1">
-                            <span className="text-zinc-400">Associated Clearnet Identity: </span>
-                            <span className="font-bold text-white select-all">{keyserverResult.userIds.join(', ')}</span>
+                      </div>
+
+                      {/* Ubuntu SKS */}
+                      <div className={`p-2 rounded-lg border flex flex-col justify-between ${
+                        keyserverResult.federatedKeyservers?.ubuntuHkp?.found
+                          ? 'bg-emerald-950/40 border-emerald-600/50 text-emerald-300'
+                          : 'bg-black/40 border-zinc-800 text-zinc-500'
+                      }`}>
+                        <div className="font-bold">Ubuntu SKS Keyserver</div>
+                        <div className="flex items-center gap-1 mt-1">
+                          {keyserverResult.federatedKeyservers?.ubuntuHkp?.found ? (
+                            <><CheckCircle2 className="w-3 h-3 text-emerald-400" /><span>Found (HKP)</span></>
+                          ) : (
+                            <><XCircle className="w-3 h-3 text-zinc-600" /><span>Not Listed</span></>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Keybase */}
+                      <div className={`p-2 rounded-lg border flex flex-col justify-between ${
+                        keyserverResult.federatedKeyservers?.keybase?.found
+                          ? 'bg-purple-950/40 border-purple-600/50 text-purple-300'
+                          : 'bg-black/40 border-zinc-800 text-zinc-500'
+                      }`}>
+                        <div className="font-bold">Keybase Identity</div>
+                        <div className="flex items-center gap-1 mt-1">
+                          {keyserverResult.federatedKeyservers?.keybase?.found ? (
+                            <><CheckCircle2 className="w-3 h-3 text-purple-400" /><span>Linked Account</span></>
+                          ) : (
+                            <><XCircle className="w-3 h-3 text-zinc-600" /><span>No Profile</span></>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* WKD */}
+                      <div className={`p-2 rounded-lg border flex flex-col justify-between ${
+                        (keyserverResult.federatedKeyservers?.wkd || []).some(w => w.verified)
+                          ? 'bg-cyan-950/40 border-cyan-600/50 text-cyan-300'
+                          : 'bg-black/40 border-zinc-800 text-zinc-500'
+                      }`}>
+                        <div className="font-bold">Web Key Directory</div>
+                        <div className="flex items-center gap-1 mt-1">
+                          {(keyserverResult.federatedKeyservers?.wkd || []).some(w => w.verified) ? (
+                            <><CheckCircle2 className="w-3 h-3 text-cyan-400" /><span>Domain Certified</span></>
+                          ) : (
+                            <><XCircle className="w-3 h-3 text-zinc-600" /><span>Unpublished</span></>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Keybase Social OSINT Card (If Profile Found) */}
+                    {keyserverResult.keybaseUser && (
+                      <div className="p-3 rounded-lg bg-purple-950/20 border border-purple-500/40 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <User className="w-3.5 h-3.5 text-purple-400" />
+                            <span className="font-bold text-white text-[11px]">KEYBASE PROFILE OSINT</span>
+                          </div>
+                          <a
+                            href={keyserverResult.keybaseUser.keybaseProfileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-purple-300 hover:text-white flex items-center gap-1 text-[10px]"
+                          >
+                            <span>keybase.io/{keyserverResult.keybaseUser.username}</span>
+                            <ExternalLink className="w-2.5 h-2.5" />
+                          </a>
+                        </div>
+                        {keyserverResult.keybaseUser.fullName && (
+                          <div className="text-[11px] text-zinc-300">
+                            <span className="text-zinc-500">Name: </span>{keyserverResult.keybaseUser.fullName}
+                          </div>
+                        )}
+                        {keyserverResult.keybaseUser.location && (
+                          <div className="text-[10px] text-zinc-400">
+                            <span className="text-zinc-500">Location: </span>{keyserverResult.keybaseUser.location}
                           </div>
                         )}
                       </div>
-                    ) : (
-                      <div className="text-[11px] text-zinc-400">
-                        {keyserverResult.error ? `Lookup error: ${keyserverResult.error}` : 'No matching public record found on keys.openpgp.org. Key appears restricted to darknet usage.'}
+                    )}
+
+                    {/* Discovered Social Profiles */}
+                    {keyserverResult.socialProfiles?.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="text-[11px] text-zinc-400 font-bold flex items-center gap-1">
+                          <Share2 className="w-3 h-3 text-cyan-400" />
+                          <span>Linked Clearnet Social Handles ({keyserverResult.socialProfiles.length}):</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {keyserverResult.socialProfiles.map((p, idx) => (
+                            <a
+                              key={idx}
+                              href={p.url || '#'}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1 rounded bg-black border border-zinc-700 hover:border-cyan-400 text-zinc-200 text-[10px] flex items-center gap-1.5 transition-colors"
+                            >
+                              <span className="uppercase font-bold text-cyan-400">{p.platform}:</span>
+                              <span>{p.handle}</span>
+                              <ExternalLink className="w-2.5 h-2.5 text-zinc-500" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Discovered Clearnet User IDs / Emails */}
+                    {keyserverResult.clearnetIdentities?.length > 0 && (
+                      <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-700/40 space-y-1">
+                        <div className="font-bold flex items-center gap-1.5 text-emerald-400 text-[11px]">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>CLEARNET IDENTITIES & EMAILS DISCOVERED:</span>
+                        </div>
+                        <div className="text-[11px] text-white space-y-0.5 pt-0.5">
+                          {keyserverResult.clearnetIdentities.map((id, idx) => (
+                            <div key={idx} className="select-all font-mono text-emerald-200">• {id}</div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {!keyserverResult.foundAny && !keyserverResult.error && (
+                      <div className="p-3 rounded-lg bg-black/40 border border-zinc-800 text-zinc-500 text-center text-[11px]">
+                        No public records discovered across SKS keyservers, VKS, Keybase, or WKD. Key appears exclusively scoped to darknet hidden services.
+                      </div>
+                    )}
+
+                    {keyserverResult.error && (
+                      <div className="p-3 rounded-lg bg-rose-950/30 border border-rose-800 text-rose-300 text-[11px]">
+                        Lookup error: {keyserverResult.error}
                       </div>
                     )}
                   </div>

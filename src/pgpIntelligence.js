@@ -356,6 +356,13 @@ async function queryKeyserver(fingerprint, timeout = 15) {
   }
 }
 
+const {
+  queryFederatedPgpIntelligence,
+  lookupWkd,
+  lookupKeybaseIdentity,
+  calculateWkdHash,
+} = require('./pgpFederation');
+
 module.exports = {
   parsePgpKey,
   extractAndParseAllPgpKeys,
@@ -363,5 +370,9 @@ module.exports = {
   correlatePgpAcrossDossiers,
   listAllPgpIdentities,
   queryKeyserver,
+  queryFederatedPgpIntelligence,
+  lookupWkd,
+  lookupKeybaseIdentity,
+  calculateWkdHash,
   PGP_BLOCK_REGEX,
 };

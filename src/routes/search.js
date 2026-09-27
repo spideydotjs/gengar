@@ -32,6 +32,8 @@ const {
   correlatePgpAcrossDossiers,
   listAllPgpIdentities,
   queryKeyserver,
+  queryFederatedPgpIntelligence,
+  lookupWkd,
 } = require('../pgpIntelligence');
 const {
   buildGraphForAddress,
@@ -767,6 +769,42 @@ router.get('/pgp/keyserver/:fingerprint', async (req, res) => {
       success: true,
       ...result,
     });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * @route  GET /api/pgp/federation/:fingerprint
+ * @desc   Deep federated PGP query: SKS keyserver, Hagrid/VKS, Keybase social proofs, and WKD verification
+ * @access Public
+ */
+router.get('/pgp/federation/:fingerprint', async (req, res) => {
+  const { timeout = 12 } = req.query;
+  try {
+    const result = await queryFederatedPgpIntelligence(req.params.fingerprint, {
+      timeout: parseInt(timeout, 10) || 12,
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * @route  POST /api/pgp/wkd
+ * @desc   Check Web Key Directory (WKD) for an email address over Tor
+ * @body   { email: string }
+ * @access Public
+ */
+router.post('/pgp/wkd', async (req, res) => {
+  const { email, timeout = 10 } = req.body || {};
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ success: false, error: 'Provide valid email in request body' });
+  }
+  try {
+    const result = await lookupWkd(email, parseInt(timeout, 10) || 10);
+    res.json({ success: true, ...result });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

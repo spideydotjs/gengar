@@ -422,5 +422,59 @@ describe('Multi-Chain Forensics Engine (EVM & TRON TRC-20)', () => {
   });
 });
 
+// Test Suite 10: Federated PGP Intelligence & WKD Protocol Engine
+describe('Federated PGP Intelligence & Web Key Directory (WKD) Engine', () => {
+  const {
+    encodeZBase32,
+    calculateWkdHash,
+    extractEmailsFromUserIds,
+    queryFederatedPgpIntelligence,
+    ZBASE32_ALPHABET,
+  } = require('../src/pgpFederation');
+  const crypto = require('crypto');
+
+  test('encodes SHA-1 digest into standard 32-character z-base-32 string', () => {
+    const dummyHash = crypto.createHash('sha1').update('alice').digest();
+    const encoded = encodeZBase32(dummyHash);
+    assert.strictEqual(encoded.length, 32);
+    for (const char of encoded) {
+      assert.ok(ZBASE32_ALPHABET.includes(char), `Character ${char} must be in z-base-32 alphabet`);
+    }
+  });
+
+  test('calculates correct WKD hash components from email address', () => {
+    const result = calculateWkdHash('Security@Proton.me');
+    assert.ok(result);
+    assert.strictEqual(result.localPart, 'security');
+    assert.strictEqual(result.domain, 'proton.me');
+    assert.strictEqual(result.zhash.length, 32);
+
+    assert.strictEqual(calculateWkdHash('invalid-email'), null);
+    assert.strictEqual(calculateWkdHash(''), null);
+  });
+
+  test('extracts unique emails from PGP User ID strings', () => {
+    const userIds = [
+      'Satoshi Nakamoto <satoshin@gmx.com>',
+      'Dread Pirate Roberts <ross@silkroad.onion>',
+      'Anonymous Operator <support@proton.me>',
+      'Support Team <SUPPORT@proton.me>',
+      'Plain User Without Email',
+    ];
+    const emails = extractEmailsFromUserIds(userIds);
+    assert.strictEqual(emails.length, 3);
+    assert.ok(emails.includes('satoshin@gmx.com'));
+    assert.ok(emails.includes('ross@silkroad.onion'));
+    assert.ok(emails.includes('support@proton.me'));
+  });
+
+  test('queryFederatedPgpIntelligence rejects invalid fingerprints gracefully', async () => {
+    const res = await queryFederatedPgpIntelligence('short');
+    assert.strictEqual(res.success, false);
+    assert.ok(res.error);
+  });
+});
+
+
 
 

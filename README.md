@@ -70,8 +70,7 @@ Traditional OSINT tools struggle with the volatility and latency of hidden servi
 - **📡 Dynamic Live Prober**: Live HTTP status code inspection, millisecond latency measurement, and HTML page title resolution for `.onion` services.
 - **📸 Headless Visual Snapshots**: Automated screenshot capture of alive `.onion` sites via Playwright Chromium over Tor, with FIFO disk quota management (`GENGAR_SCREENSHOT_QUOTA`).
 - **🧠 Recursive NLP Blockchain Scraper**: Crawls internal `.onion` subpages to identify crypto wallets (BTC, ETH, XMR, LTC) and classifies intent using weighted context NLP:
-  - `RANSOM_EXTORTION` • `ESCROW_DEPOSIT` • `COMMERCE_PAYMENT` • `DONATION` • `VENDOR_BOND` • `EXCHANGE_MIXER`
-- **🔑 PGP Identity & Cross-Onion Linker**: RFC 4880 OpenPGP parsing of public key blocks to extract 40-character fingerprints, Key IDs, and User IDs. Automatically links distinct `.onion` domains operated by the same entity and checks public keyservers (`keys.openpgp.org`) over Tor.
+- **🔑 Federated PGP & WKD Intelligence Hub**: RFC 4880 OpenPGP parsing with cross-onion entity linking, federated keyserver queries across Ubuntu SKS & Hagrid (`keys.openpgp.org`), IETF Web Key Directory (WKD) domain verification, and Keybase Social OSINT extraction (linking darknet keys to clearnet GitHub, Twitter/X, and Reddit profiles).
 - **🕸️ Interactive Entity Network Graph**: 60 FPS force-directed canvas graph mapping multi-hop transaction flows, co-spent wallet clusters, peeling chains, mixer signatures, PGP identities, and OFAC threat actors with an interactive inspector drawer.
 - **⚖️ Court-Ready PDF & STIX 2.1 Export**: Federal Rules of Evidence (FRE 902(14)) self-authenticating digital evidence reports with print-to-PDF pagination, Chain of Custody audit trails, cryptographic SHA-256 integrity seals, and OASIS STIX 2.1 JSON bundles for SIEM/MISP/OpenCTI ingestion.
 - **🔄 Tor Circuit Cycling & Identity Rotation**: On-demand Tor ControlPort `SIGNAL NEWNYM` combined with RFC 1928 SOCKS5 stream isolation (`IsolateSOCKSAuth`), providing instant exit IP rotation, zero-cooldown circuit switching, and automated background anti-blocking intervals.
@@ -238,6 +237,7 @@ Copy `.env.example` to `.env` to configure your environment:
 - [x] On-chain UTXO tracing and peeling chain heuristics
 - [x] Cryptographic SHA-256 evidence vault with Chain of Custody
 - [x] OpenPGP RFC 4880 parsing & cross-onion entity correlation
+- [x] **Federated PGP & WKD Cross-Reference**: Multi-keyserver federation (SKS/HKP, Hagrid/VKS), Keybase social OSINT, and Web Key Directory (WKD) validation over Tor
 - [x] **Interactive Visual Entity Graph**: Force-directed network visualization of transaction hops, co-spent clusters, and threat actors
 - [x] **Court-Ready PDF & STIX 2.1 Reports**: Automated certified forensic PDF documentation and SIEM ingestion
 - [x] **Tor Circuit Cycling**: On-demand NEWNYM signaling and SOCKS5 stream isolation for automated circuit rotation
