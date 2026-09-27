@@ -5,6 +5,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const cheerio = require('cheerio');
 const { torGet } = require('./torClient');
+const { extractAndParseAllPgpKeys } = require('./pgpIntelligence');
 
 const SCANS_DIR = path.join(__dirname, '..', 'data', 'scans');
 if (!fs.existsSync(SCANS_DIR)) {
@@ -286,6 +287,18 @@ async function scrapeBlockchainSite(targetUrl, options = {}) {
     intentCounts[w.intent] = (intentCounts[w.intent] || 0) + 1;
   });
 
+  // Parse all discovered PGP public keys into cryptographic identities
+  const uniquePgpBlocks = [...new Set(siteContacts.pgp)];
+  const parsedPgpIdentities = [];
+  for (const block of uniquePgpBlocks) {
+    try {
+      const parsed = await extractAndParseAllPgpKeys(block);
+      parsed.forEach(p => {
+        if (p.success) parsedPgpIdentities.push(p);
+      });
+    } catch (_) {}
+  }
+
   const dossierId = crypto.createHash('sha256').update(`${cleanBase}_${Date.now()}`).digest('hex').slice(0, 16);
 
   const dossier = {
@@ -299,7 +312,8 @@ async function scrapeBlockchainSite(targetUrl, options = {}) {
     coinBreakdown: coinCounts,
     intentBreakdown: intentCounts,
     contacts: {
-      pgpKeys: [...new Set(siteContacts.pgp)],
+      pgpKeys: uniquePgpBlocks,
+      pgpIdentities: parsedPgpIdentities,
       emails: [...new Set(siteContacts.emails)],
       jabber: [...new Set(siteContacts.jabber)],
     },

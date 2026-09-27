@@ -3,8 +3,9 @@ import {
   Coins, Search, Globe, Shield, Terminal, Clock, ExternalLink,
   Copy, Check, RefreshCw, AlertCircle, FileText, Download,
   Layers, Key, Mail, MessageSquare, ChevronDown, ChevronUp,
-  Flame, Zap, Filter, ArrowRight
+  Flame, Zap, Filter, ArrowRight, Fingerprint
 } from 'lucide-react';
+import PgpInspectorModal from './PgpInspectorModal';
 
 export default function BlockchainScraper({ defaultUrl = '', onNavigateToSearch, onForensicTrace }) {
   const [targetUrl, setTargetUrl] = useState(defaultUrl);
@@ -22,6 +23,8 @@ export default function BlockchainScraper({ defaultUrl = '', onNavigateToSearch,
   const [intentFilter, setIntentFilter] = useState('ALL');
   const [searchFilter, setSearchFilter] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+  const [selectedPgpFingerprint, setSelectedPgpFingerprint] = useState(null);
+  const [selectedPgpData, setSelectedPgpData] = useState(null);
 
   const eventSourceRef = useRef(null);
 
@@ -760,30 +763,83 @@ export default function BlockchainScraper({ defaultUrl = '', onNavigateToSearch,
                 </div>
               </div>
 
-              {/* PGP Public Key Blocks */}
-              {dossier.contacts.pgpKeys?.length > 0 && (
-                <div className="space-y-2 pt-2">
-                  <div className="flex items-center gap-1.5 text-zinc-400 text-xs font-bold">
-                    <Key className="w-3.5 h-3.5 text-amber-400" />
-                    <span>PGP Public Key Blocks ({dossier.contacts.pgpKeys.length})</span>
-                  </div>
-                  {dossier.contacts.pgpKeys.map((keyBlock, ki) => (
-                    <div key={ki} className="p-3 rounded-xl bg-black/80 border border-zinc-800 font-mono text-[10px] space-y-2">
-                      <div className="flex items-center justify-between text-zinc-400">
-                        <span>PGP KEY #{ki + 1}</span>
-                        <button
-                          onClick={() => handleCopy(keyBlock, 'pgp', setCopiedPgp)}
-                          className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
-                        >
-                          {copiedPgp === keyBlock ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                          <span>{copiedPgp === keyBlock ? 'Copied' : 'Copy Key'}</span>
-                        </button>
-                      </div>
-                      <pre className="max-h-28 overflow-y-auto text-zinc-500 whitespace-pre-wrap select-all font-mono">
-                        {keyBlock}
-                      </pre>
+              {/* PGP Public Key Blocks & Cryptographic Identities */}
+              {((dossier.contacts.pgpIdentities && dossier.contacts.pgpIdentities.length > 0) || (dossier.contacts.pgpKeys && dossier.contacts.pgpKeys.length > 0)) && (
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between text-zinc-400 text-xs font-bold">
+                    <div className="flex items-center gap-1.5 text-purple-400">
+                      <Key className="w-4 h-4" />
+                      <span>Extracted PGP Cryptographic Identities ({dossier.contacts.pgpIdentities?.length || dossier.contacts.pgpKeys?.length})</span>
                     </div>
-                  ))}
+                    <span className="text-[10px] text-zinc-500 font-mono">OpenPGP RFC 4880 Decoded</span>
+                  </div>
+
+                  {/* Render Parsed PGP Identities if available */}
+                  {dossier.contacts.pgpIdentities && dossier.contacts.pgpIdentities.length > 0 ? (
+                    dossier.contacts.pgpIdentities.map((id, ki) => (
+                      <div
+                        key={id.fingerprint || ki}
+                        className="p-4 rounded-xl bg-purple-950/20 border border-purple-900/50 hover:border-purple-600/80 transition-all font-mono space-y-2.5 shadow-md"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded bg-purple-900/60 border border-purple-700 text-purple-300 font-bold text-[10px]">
+                              {id.algorithm || 'PGP KEY'} {id.bitLength ? `(${id.bitLength}-bit)` : ''}
+                            </span>
+                            <span className="text-zinc-300 font-bold text-xs truncate max-w-[280px]">
+                              {id.primaryUserId || 'Unnamed Identity'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              onClick={() => {
+                                setSelectedPgpFingerprint(id.fingerprint);
+                                setSelectedPgpData(id);
+                              }}
+                              className="px-2.5 py-1 rounded bg-purple-600 hover:bg-purple-500 text-white font-bold text-[11px] flex items-center gap-1.5 transition-colors cursor-pointer shadow-[0_0_10px_rgba(168,85,247,0.3)]"
+                            >
+                              <Fingerprint className="w-3.5 h-3.5" />
+                              <span>Inspect Dossier</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleCopy(id.rawArmor || dossier.contacts.pgpKeys?.[ki], 'pgp', setCopiedPgp)}
+                              className="px-2 py-1 rounded bg-zinc-900 border border-zinc-800 hover:text-white transition-colors flex items-center gap-1 cursor-pointer text-[11px]"
+                            >
+                              {copiedPgp === (id.rawArmor || dossier.contacts.pgpKeys?.[ki]) ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                              <span>{copiedPgp === (id.rawArmor || dossier.contacts.pgpKeys?.[ki]) ? 'Copied' : 'Copy'}</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Fingerprint snippet */}
+                        <div className="p-2 rounded bg-black/60 border border-purple-900/30 text-purple-300 text-[11px] font-mono select-all flex items-center justify-between">
+                          <span className="truncate pr-2">FP: {id.formattedFingerprint || id.fingerprint}</span>
+                          <span className="text-zinc-500 text-[10px] shrink-0">ID: {id.keyId}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    /* Fallback to raw blocks if unparsed */
+                    dossier.contacts.pgpKeys.map((keyBlock, ki) => (
+                      <div key={ki} className="p-3 rounded-xl bg-black/80 border border-zinc-800 font-mono text-[10px] space-y-2">
+                        <div className="flex items-center justify-between text-zinc-400">
+                          <span>PGP KEY #{ki + 1}</span>
+                          <button
+                            onClick={() => handleCopy(keyBlock, 'pgp', setCopiedPgp)}
+                            className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            {copiedPgp === keyBlock ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedPgp === keyBlock ? 'Copied' : 'Copy Key'}</span>
+                          </button>
+                        </div>
+                        <pre className="max-h-28 overflow-y-auto text-zinc-500 whitespace-pre-wrap select-all font-mono">
+                          {keyBlock}
+                        </pre>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
             </div>
@@ -827,6 +883,24 @@ export default function BlockchainScraper({ defaultUrl = '', onNavigateToSearch,
             </div>
           )}
         </div>
+      )}
+
+      {/* PGP Inspector Modal */}
+      {(selectedPgpFingerprint || selectedPgpData) && (
+        <PgpInspectorModal
+          fingerprint={selectedPgpFingerprint}
+          initialKeyData={selectedPgpData}
+          onClose={() => {
+            setSelectedPgpFingerprint(null);
+            setSelectedPgpData(null);
+          }}
+          onNavigateToSite={(siteUrl) => {
+            if (siteUrl && siteUrl !== targetUrl) {
+              setTargetUrl(siteUrl);
+              startScan(siteUrl);
+            }
+          }}
+        />
       )}
     </div>
   );

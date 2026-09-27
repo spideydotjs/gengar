@@ -22,6 +22,12 @@ const {
   EvidenceManager,
   DEFAULT_EXAMINER,
 } = require('../cryptoForensics');
+const {
+  parsePgpKey,
+  correlatePgpAcrossDossiers,
+  listAllPgpIdentities,
+  queryKeyserver,
+} = require('../pgpIntelligence');
 
 const router = express.Router();
 
@@ -499,6 +505,89 @@ router.post('/forensics/case/note', (req, res) => {
     });
 
     res.json({ success: true, caseId, evidenceSeal: updated.evidenceSeal, notes: updatedNotes });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── PGP IDENTITY & FINGERPRINT INTELLIGENCE ENDPOINTS ───────────────
+
+/**
+ * @route  GET /api/pgp/identities
+ * @desc   List all unique PGP identities discovered across crawl dossiers
+ * @access Public
+ */
+router.get('/pgp/identities', (req, res) => {
+  try {
+    const identities = listAllPgpIdentities();
+    res.json({
+      success: true,
+      count: identities.length,
+      identities,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * @route  GET /api/pgp/identity/:fingerprint
+ * @desc   Get full identity profile, cross-onion domain linkage, and wallets for a PGP fingerprint
+ * @access Public
+ */
+router.get('/pgp/identity/:fingerprint', (req, res) => {
+  try {
+    const correlation = correlatePgpAcrossDossiers(req.params.fingerprint);
+    res.json({
+      success: true,
+      ...correlation,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * @route  POST /api/pgp/parse
+ * @desc   Parse any armored PGP public key on demand
+ * @body   { rawArmor: string }
+ * @access Public
+ */
+router.post('/pgp/parse', async (req, res) => {
+  const { rawArmor } = req.body || {};
+  if (!rawArmor || typeof rawArmor !== 'string') {
+    return res.status(400).json({ success: false, error: 'Provide rawArmor in request body' });
+  }
+
+  try {
+    const parsed = await parsePgpKey(rawArmor);
+    if (!parsed.success) {
+      return res.status(422).json(parsed);
+    }
+    const correlation = correlatePgpAcrossDossiers(parsed.fingerprint);
+    res.json({
+      success: true,
+      key: parsed,
+      crossOnionLinkage: correlation,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * @route  GET /api/pgp/keyserver/:fingerprint
+ * @desc   Query public keyserver (keys.openpgp.org) over Tor for historical registration or leaked clearnet emails
+ * @access Public
+ */
+router.get('/pgp/keyserver/:fingerprint', async (req, res) => {
+  const { timeout = 15 } = req.query;
+  try {
+    const result = await queryKeyserver(req.params.fingerprint, parseInt(timeout, 10) || 15);
+    res.json({
+      success: true,
+      ...result,
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

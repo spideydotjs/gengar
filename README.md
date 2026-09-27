@@ -71,6 +71,7 @@ Traditional OSINT tools struggle with the volatility and latency of hidden servi
 - **📸 Headless Visual Snapshots**: Automated screenshot capture of alive `.onion` sites via Playwright Chromium over Tor, with FIFO disk quota management (`GENGAR_SCREENSHOT_QUOTA`).
 - **🧠 Recursive NLP Blockchain Scraper**: Crawls internal `.onion` subpages to identify crypto wallets (BTC, ETH, XMR, LTC) and classifies intent using weighted context NLP:
   - `RANSOM_EXTORTION` • `ESCROW_DEPOSIT` • `COMMERCE_PAYMENT` • `DONATION` • `VENDOR_BOND` • `EXCHANGE_MIXER`
+- **🔑 PGP Identity & Cross-Onion Linker**: RFC 4880 OpenPGP parsing of public key blocks to extract 40-character fingerprints, Key IDs, and User IDs. Automatically links distinct `.onion` domains operated by the same entity and checks public keyservers (`keys.openpgp.org`) over Tor.
 - **🔒 API Key Protection**: Optional Bearer token authorization (`GENGAR_API_KEY`) for secure remote deployments while keeping Docker healthchecks open.
 
 ---
@@ -182,6 +183,12 @@ Available directly within the Web UI dashboard or programmatically via `/api/for
 - `GET /api/forensics/cases` — List all sealed evidence dossiers in the vault.
 - `POST /api/forensics/case/note` — Append examiner notes to a case file and re-seal cryptographic hash.
 
+### PGP Identity & Fingerprint Intelligence
+- `GET /api/pgp/identities` — List all unique PGP identities discovered across crawl dossiers.
+- `GET /api/pgp/identity/:fingerprint` — Get full identity dossier, cross-onion domain linkage, and wallets for a PGP fingerprint.
+- `POST /api/pgp/parse` — Parse and decode any custom armored PGP public key block on demand.
+- `GET /api/pgp/keyserver/:fingerprint` — Query public keyserver (`keys.openpgp.org`) over Tor for clearnet email linkage.
+
 ---
 
 ## ⚙️ Environment Variables
@@ -209,6 +216,7 @@ Copy `.env.example` to `.env` to configure your environment:
 - [x] NLP context intent classification (Ransom, Escrow, Donation)
 - [x] On-chain UTXO tracing and peeling chain heuristics
 - [x] Cryptographic SHA-256 evidence vault with Chain of Custody
+- [x] OpenPGP RFC 4880 parsing & cross-onion entity correlation
 - [ ] **Multi-chain tracking**: Support for EVM (Ethereum, Arbitrum) and TRON (USDT TRC-20)
 - [ ] **Interactive Visual Graph**: Node-link graph visualization of transaction hops and co-spent clusters
 - [ ] **Tor Circuit Cycling**: On-demand NEWNYM signaling for automated circuit rotation

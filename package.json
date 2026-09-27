@@ -41,6 +41,7 @@
     "cheerio": "^1.0.0",
     "cors": "^2.8.6",
     "express": "^5.1.0",
+    "openpgp": "^5.11.3",
     "playwright": "^1.62.1",
     "socks-proxy-agent": "^8.0.5"
   }

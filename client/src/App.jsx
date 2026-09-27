@@ -8,7 +8,8 @@ import LiveConsole from './components/LiveConsole';
 import ScreenshotsGallery from './components/ScreenshotsGallery';
 import BlockchainScraper from './components/BlockchainScraper';
 import CryptoForensics from './components/CryptoForensics';
-import { Loader2, AlertCircle, Terminal, Camera, ListFilter, ExternalLink, Coins, ShieldAlert } from 'lucide-react';
+import PgpIdentitiesTab from './components/PgpIdentitiesTab';
+import { Loader2, AlertCircle, Terminal, Camera, ListFilter, ExternalLink, Coins, ShieldAlert, Key } from 'lucide-react';
 
 export default function App() {
   const [torStatus, setTorStatus] = useState(null);
@@ -552,6 +553,21 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => setActiveTab('pgp')}
+            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${
+              activeTab === 'pgp'
+                ? 'bg-gradient-to-r from-purple-700 to-purple-600 text-white font-bold shadow-[0_0_15px_rgba(168,85,247,0.4)]'
+                : 'bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-purple-300'
+            }`}
+          >
+            <Key className="w-4 h-4 text-purple-400" />
+            <span>PGP Identities</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-purple-950 text-purple-300 border border-purple-800 text-[10px]">
+              INTEL
+            </span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('screenshots')}
             className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
               activeTab === 'screenshots'
@@ -691,6 +707,16 @@ export default function App() {
         {activeTab === 'forensics' && (
           <CryptoForensics
             initialTarget={selectedForensicAddress}
+          />
+        )}
+
+        {/* TAB 4: PGP IDENTITY & FINGERPRINT INTELLIGENCE */}
+        {activeTab === 'pgp' && (
+          <PgpIdentitiesTab
+            onNavigateToSite={(siteUrl) => {
+              setSelectedBlockchainUrl(siteUrl);
+              setActiveTab('blockchain');
+            }}
           />
         )}
 

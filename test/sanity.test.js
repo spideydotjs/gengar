@@ -14,6 +14,7 @@ describe('Gengar Core Module Integrity', () => {
     assert.doesNotThrow(() => require('../src/blockchainScraper'));
     assert.doesNotThrow(() => require('../src/cryptoForensics'));
     assert.doesNotThrow(() => require('../src/screenshot'));
+    assert.doesNotThrow(() => require('../src/pgpIntelligence'));
     assert.doesNotThrow(() => require('../src/routes/search'));
   });
 });
@@ -96,5 +97,47 @@ describe('Threat Intelligence & Evidence Integrity', () => {
     const hash2 = EvidenceManager.calculateSha256(data);
     assert.strictEqual(hash1, hash2);
     assert.strictEqual(hash1.length, 64);
+  });
+});
+
+// Test Suite 5: PGP Intelligence Engine
+describe('PGP Identity & Fingerprint Intelligence Engine', () => {
+  const { parsePgpKey, formatFingerprint, correlatePgpAcrossDossiers } = require('../src/pgpIntelligence');
+  const openpgp = require('openpgp');
+
+  test('formats 40-character fingerprint into standard 4-char chunks', () => {
+    const rawFp = '47477B59F81B4D0679AF8D30572E8BF0B0F74D4F';
+    const formatted = formatFingerprint(rawFp);
+    assert.strictEqual(formatted, '4747 7B59 F81B 4D06 79AF  8D30 572E 8BF0 B0F7 4D4F');
+  });
+
+  test('parses generated OpenPGP public key and extracts fingerprint and user ID', async () => {
+    const { publicKey } = await openpgp.generateKey({
+      type: 'rsa',
+      rsaBits: 2048,
+      userIDs: [{ name: 'Darknet Market Vendor', email: 'vendor@hydra.onion' }]
+    });
+
+    const parsed = await parsePgpKey(publicKey);
+    assert.strictEqual(parsed.success, true);
+    assert.ok(parsed.fingerprint);
+    assert.strictEqual(parsed.fingerprint.length, 40);
+    assert.strictEqual(parsed.keyId.length, 16);
+    assert.ok(parsed.userIds.some(u => u.includes('Darknet Market Vendor')));
+    assert.strictEqual(parsed.isRevoked, false);
+  });
+
+  test('gracefully rejects malformed or truncated PGP blocks without throwing', async () => {
+    const malformed = '-----BEGIN PGP PUBLIC KEY BLOCK-----\ninvalid data\n-----END PGP PUBLIC KEY BLOCK-----';
+    const res = await parsePgpKey(malformed);
+    assert.strictEqual(res.success, false);
+    assert.ok(res.error);
+  });
+
+  test('correlates PGP fingerprint queries against scan directory safely', () => {
+    const res = correlatePgpAcrossDossiers('47477B59F81B4D0679AF8D30572E8BF0B0F74D4F');
+    assert.strictEqual(typeof res.matched, 'boolean');
+    assert.ok(Array.isArray(res.onionSites));
+    assert.ok(Array.isArray(res.associatedWallets));
   });
 });
