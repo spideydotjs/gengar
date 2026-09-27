@@ -8,8 +8,17 @@
     "dev": "node --watch index.js",
     "build:client": "cd client && npm run build",
     "build": "npm run build:client",
-    "client": "cd client && npm run dev"
+    "client": "cd client && npm run dev",
+    "test": "node --test test/sanity.test.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/spideydotjs/gengar.git"
+  },
+  "bugs": {
+    "url": "https://github.com/spideydotjs/gengar/issues"
+  },
+  "homepage": "https://github.com/spideydotjs/gengar#readme",
   "keywords": [
     "tor",
     "darkweb",
@@ -17,9 +26,13 @@
     "ahmia",
     "hidden-service",
     "osint",
-    "research"
+    "research",
+    "crypto-forensics",
+    "blockchain-analysis",
+    "threat-intelligence",
+    "cybersecurity"
   ],
-  "author": "",
+  "author": "spideydotjs",
   "license": "MIT",
   "type": "commonjs",
   "dependencies": {
