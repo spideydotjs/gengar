@@ -97,9 +97,22 @@ async function captureScreenshot(url, options = {}) {
       capturedAt: new Date().toISOString(),
     };
 
-    // Store in metadata file
+    // Store in metadata file — evict oldest entries beyond quota
+    const MAX_SCREENSHOTS = parseInt(process.env.GENGAR_SCREENSHOT_QUOTA, 10) || 200;
     const list = getMetadata().filter(m => m.url !== url && m.id !== hash);
     list.unshift(item);
+
+    // Evict oldest screenshots that exceed the quota limit
+    while (list.length > MAX_SCREENSHOTS) {
+      const oldest = list.pop();
+      if (oldest) {
+        const oldPath = path.join(SCREENSHOTS_DIR, oldest.filename);
+        if (fs.existsSync(oldPath)) {
+          try { fs.unlinkSync(oldPath); } catch (_) {}
+        }
+      }
+    }
+
     saveMetadata(list);
 
     return {

@@ -14,6 +14,7 @@ const {
   correlateWithGengarDarknet,
   EvidenceManager,
   THREAT_INTEL_DB,
+  DEFAULT_EXAMINER,
 } = require('../cryptoForensics');
 
 function startTrackerTUI(initialAddress) {
@@ -359,7 +360,7 @@ function startTrackerTUI(initialAddress) {
       state.currentCase = EvidenceManager.saveCaseDossier({
         caseId: state.currentCase ? state.currentCase.caseId : EvidenceManager.createCaseId(),
         targetAddress: target,
-        leadExaminer: 'OPERATOR_FORENSICS',
+        leadExaminer: DEFAULT_EXAMINER,
         threatScore: threats.threatScore,
         overview,
         correlatedThreats: threats.matches,
@@ -717,12 +718,198 @@ function startTrackerTUI(initialAddress) {
     screen.render();
   }
 
+  // ── [T] Trace Tx Modal ───────────────────────────────────────────
+  function showTraceTxModal() {
+    if (!state.analysis || !state.analysis.ledger.length) {
+      addLog('No transaction ledger loaded. Scan a target first.', 'WARN');
+      return;
+    }
+
+    const modal = blessed.box({
+      parent: screen,
+      top: 'center',
+      left: 'center',
+      width: '75%',
+      height: '70%',
+      border: { type: 'line' },
+      style: {
+        border: { fg: 'cyan', bold: true },
+        bg: 'black',
+      },
+      tags: true,
+      label: ' 🔎 Trace Transaction — Select to Inspect Inputs, Outputs & Counterparty Flow ',
+    });
+
+    const instructions = blessed.text({
+      parent: modal,
+      top: 1,
+      left: 2,
+      content: '{cyan-fg}Use ↑/↓ arrows to select a transaction, then press [Enter] to deep-inspect it.{/cyan-fg}',
+      tags: true,
+    });
+
+    const items = state.analysis.ledger.map((tx, i) => {
+      const shortTx = tx.txid.slice(0, 20) + '...';
+      const dir = tx.direction === 'RECEIVED' ? '{green-fg}IN {/green-fg}' :
+                  tx.direction === 'SENT'     ? '{red-fg}OUT{/red-fg}' : '{yellow-fg}CHG{/yellow-fg}';
+      const sig = tx.isPeeling ? '⚡PEEL' : tx.isMixer ? '🌀MIX' : '─────';
+      return `[${String(i + 1).padStart(3)}] ${dir} | ${tx.amountBtc.toFixed(6)} BTC | ${shortTx} | ${sig}`;
+    });
+
+    const list = blessed.list({
+      parent: modal,
+      top: 3,
+      left: 1,
+      right: 1,
+      bottom: 3,
+      keys: true,
+      mouse: true,
+      scrollable: true,
+      border: { type: 'line' },
+      style: {
+        border: { fg: 'cyan' },
+        selected: { bg: 'cyan', fg: 'black', bold: true },
+        fg: 'white',
+        bg: 'black',
+        item: { tags: true },
+      },
+      tags: true,
+      items,
+    });
+
+    list.on('select', (_, idx) => {
+      modal.destroy();
+      screen.render();
+      updateTxDetail(idx);
+      addLog(`Tracing transaction #${idx + 1}: ${state.analysis.ledger[idx].txid.slice(0, 20)}...`, 'TRACE');
+    });
+
+    modal.key(['escape'], () => {
+      modal.destroy();
+      screen.render();
+    });
+
+    list.focus();
+    screen.render();
+  }
+
+  // ── [L] Case Locker Modal ────────────────────────────────────────
+  function showCaseLockerModal() {
+    const modal = blessed.box({
+      parent: screen,
+      top: 'center',
+      left: 'center',
+      width: '85%',
+      height: '75%',
+      border: { type: 'line' },
+      style: {
+        border: { fg: '#10b981', bold: true },
+        bg: 'black',
+      },
+      tags: true,
+      label: ' 🗄️  Evidence Locker — Sealed Forensic Case Dossiers ',
+    });
+
+    const cases = EvidenceManager.listCases();
+
+    if (cases.length === 0) {
+      modal.setContent(
+        '{yellow-fg}No sealed evidence cases found in data/evidence/.{/yellow-fg}\n\n' +
+        'Investigate a target first using [S] to create a case dossier.\n\n' +
+        'Press [Escape] or [Enter] to close.'
+      );
+      modal.key(['escape', 'enter'], () => { modal.destroy(); screen.render(); });
+      modal.focus();
+      screen.render();
+      return;
+    }
+
+    const instructions = blessed.text({
+      parent: modal,
+      top: 1,
+      left: 2,
+      content: `{green-fg}${cases.length} sealed case(s) found. Select a case to reload its target address for re-investigation.{/green-fg}`,
+      tags: true,
+    });
+
+    const items = cases.map((c, i) => {
+      const score = c.threatScore || 0;
+      const scoreTag = score >= 80 ? '{red-fg}' : score >= 50 ? '{yellow-fg}' : '{green-fg}';
+      const closeTag = score >= 80 ? '{/red-fg}' : score >= 50 ? '{/yellow-fg}' : '{/green-fg}';
+      const txStr = String(c.txCount || 0).padStart(3);
+      const dateStr = c.lastModified ? c.lastModified.split('T')[0] : '????-??-??';
+      return `[${String(i + 1).padStart(2)}] ${c.caseId} | ${dateStr} | Threat:${scoreTag}${String(score).padStart(3)}%${closeTag} | Txs:${txStr} | ${(c.targetAddress || '').slice(0, 28)}...`;
+    });
+
+    const list = blessed.list({
+      parent: modal,
+      top: 3,
+      left: 1,
+      right: 1,
+      bottom: 4,
+      keys: true,
+      mouse: true,
+      scrollable: true,
+      border: { type: 'line' },
+      style: {
+        border: { fg: '#10b981' },
+        selected: { bg: '#10b981', fg: 'black', bold: true },
+        fg: 'white',
+        bg: 'black',
+        item: { tags: true },
+      },
+      tags: true,
+      items,
+    });
+
+    const hint = blessed.text({
+      parent: modal,
+      bottom: 1,
+      left: 2,
+      content: '{dim}[Enter] Re-investigate   [E] View Certificate   [Esc] Close{/dim}',
+      tags: true,
+    });
+
+    list.on('select', (_, idx) => {
+      const selected = cases[idx];
+      if (!selected || !selected.targetAddress) return;
+      modal.destroy();
+      screen.render();
+      addLog(`Loading case ${selected.caseId} — re-investigating ${selected.targetAddress.slice(0, 20)}...`, 'LOCKER');
+      investigateAddress(selected.targetAddress);
+    });
+
+    list.key(['e', 'E'], () => {
+      const idx = list.selected;
+      const selected = cases[idx];
+      if (!selected) return;
+      // Load the case into state then show its certificate
+      const fullCase = EvidenceManager.getCase(selected.caseId);
+      if (fullCase) {
+        state.currentCase = fullCase;
+        modal.destroy();
+        screen.render();
+        showSealEvidenceModal();
+      }
+    });
+
+    modal.key(['escape'], () => {
+      modal.destroy();
+      screen.render();
+    });
+
+    list.focus();
+    screen.render();
+  }
+
   // ── Keyboard Navigation ──────────────────────────────────────────
   screen.key(['tab'], () => cycleFocus());
 
   screen.key(['s', 'S'], () => showScanModal());
+  screen.key(['t', 'T'], () => showTraceTxModal());
   screen.key(['n', 'N'], () => showAddNoteModal());
   screen.key(['e', 'E'], () => showSealEvidenceModal());
+  screen.key(['l', 'L'], () => showCaseLockerModal());
   screen.key(['d', 'D'], () => showGengarDarknetModal());
 
   screen.key(['c', 'C'], () => {

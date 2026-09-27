@@ -20,6 +20,7 @@ const {
   correlateThreatIntel,
   correlateWithGengarDarknet,
   EvidenceManager,
+  DEFAULT_EXAMINER,
 } = require('../cryptoForensics');
 
 const router = express.Router();
@@ -393,7 +394,7 @@ router.get('/blockchain-scan/:id', (req, res) => {
  * @body   { address: string, examiner?: string }
  */
 router.post('/forensics/track', async (req, res) => {
-  const { address, examiner = 'OPERATOR_API' } = req.body || {};
+  const { address, examiner = DEFAULT_EXAMINER } = req.body || {};
 
   if (!address || typeof address !== 'string' || address.trim().length < 25) {
     return res.status(400).json({ success: false, error: 'Provide a valid cryptocurrency address in body' });

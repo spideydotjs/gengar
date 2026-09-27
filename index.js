@@ -27,9 +27,10 @@ const searchRoute = require('./src/routes/search');
 const { closeBrowser } = require('./src/ahmia');
 
 // ── Config ─────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 6700;  // 6666 is browser-blocked (ERR_UNSAFE_PORT)
-const HOST = process.env.HOST || '0.0.0.0';
-const TOR_SOCK = process.env.TOR_SOCKS || 'socks5h://127.0.0.1:9050';
+const PORT          = process.env.PORT          || 6700;  // 6666 is browser-blocked (ERR_UNSAFE_PORT)
+const HOST          = process.env.HOST          || '0.0.0.0';
+const TOR_SOCK      = process.env.TOR_SOCKS     || 'socks5h://127.0.0.1:9050';
+const API_KEY       = process.env.GENGAR_API_KEY || '';   // optional — blank = auth disabled
 
 // ── App ────────────────────────────────────────────────────────────
 const app = express();
@@ -37,6 +38,25 @@ const app = express();
 app.use(cors());            // ← allow all origins (browser-accessible)
 app.use(express.json());
 app.use(logger.middleware);
+
+// ── Optional API Key Auth ───────────────────────────────────────────
+// Activated only when GENGAR_API_KEY is set in environment.
+// Always allows: GET / (UI), GET /api/health (Docker healthcheck)
+if (API_KEY) {
+  app.use('/api', (req, res, next) => {
+    // Always allow health check so Docker HEALTHCHECK still works
+    if (req.path === '/health') return next();
+    const auth = req.headers['authorization'] || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+    if (token !== API_KEY) {
+      return res.status(401).json({ success: false, error: 'Unauthorized. Provide Authorization: Bearer <GENGAR_API_KEY>' });
+    }
+    next();
+  });
+  logger.info('API key authentication is ENABLED.');
+} else {
+  logger.info('API key authentication is DISABLED (set GENGAR_API_KEY to enable).');
+}
 
 // ── Static Frontend ────────────────────────────────────────────────
 const clientDist = path.join(__dirname, 'client', 'dist');
