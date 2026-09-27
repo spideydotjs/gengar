@@ -131,6 +131,18 @@ export default function CryptoForensics({ initialTarget = '' }) {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportStix = () => {
+    if (!caseData?.caseId) return;
+    window.location.href = `/api/forensics/case/${caseData.caseId}/export/stix`;
+  };
+
+  const handleOpenCourtReport = (autoPrint = true) => {
+    if (!caseData?.caseId) return;
+    const url = `/api/forensics/case/${caseData.caseId}/export/html${autoPrint ? '?print=true' : ''}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+
   const filteredLedger = useMemo(() => {
     if (!caseData || !Array.isArray(caseData.ledger)) return [];
     return caseData.ledger.filter((tx) => {
@@ -262,10 +274,29 @@ export default function CryptoForensics({ initialTarget = '' }) {
                       Risk: {c.threatScore}/100
                     </span>
                   </div>
-                  <div className="text-zinc-400 truncate text-[11px]">{c.targetAddress}</div>
+                  <div className="text-zinc-400 truncate text-[11px] font-mono">{c.targetAddress}</div>
                   <div className="text-[10px] text-zinc-500 flex items-center justify-between pt-1 border-t border-zinc-900">
-                    <span>Seal: {c.evidenceSeal?.slice(0, 10)}...</span>
-                    <span>{new Date(c.lastModified).toLocaleDateString()}</span>
+                    <span className="font-mono">Seal: {c.evidenceSeal?.slice(0, 10)}...</span>
+                    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <a
+                        href={`/api/forensics/case/${c.caseId}/export/html?print=true`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="View & Print FRE 902 Court Report (PDF)"
+                        className="px-1.5 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-amber-400 hover:text-amber-300 border border-zinc-800 flex items-center gap-1 text-[10px]"
+                      >
+                        <FileText className="w-2.5 h-2.5" />
+                        <span>PDF</span>
+                      </a>
+                      <a
+                        href={`/api/forensics/case/${c.caseId}/export/stix`}
+                        title="Download OASIS STIX 2.1 JSON Bundle"
+                        className="px-1.5 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 text-emerald-400 hover:text-emerald-300 border border-zinc-800 flex items-center gap-1 text-[10px]"
+                      >
+                        <Shield className="w-2.5 h-2.5" />
+                        <span>STIX</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -322,18 +353,35 @@ export default function CryptoForensics({ initialTarget = '' }) {
                 </h3>
               </div>
 
-              {/* Threat Score Pill */}
-              <div className="flex items-center gap-3">
-                <div className={`px-4 py-2 rounded-xl border text-xs font-bold flex items-center gap-2 shadow-lg ${scoreBadgeColor}`}>
-                  <Flame className="w-4 h-4 animate-pulse" />
-                  <span>THREAT SCORE: {threatScore}/100</span>
+              {/* Threat Score Pill & Export Suite */}
+              <div className="flex flex-wrap items-center gap-2.5">
+                <div className={`px-3.5 py-1.5 rounded-xl border text-xs font-bold flex items-center gap-2 shadow-lg ${scoreBadgeColor}`}>
+                  <Flame className="w-3.5 h-3.5 animate-pulse" />
+                  <span>THREAT: {threatScore}/100</span>
                 </div>
                 <button
-                  onClick={handleDownloadCase}
-                  className="px-3.5 py-2 rounded-xl bg-purple-950/60 hover:bg-purple-900 border border-purple-600/50 text-purple-200 font-bold flex items-center gap-2 transition-colors cursor-pointer"
+                  onClick={() => handleOpenCourtReport(true)}
+                  title="Open FRE Rule 902(14) Certified Court Evidence Document (Print to PDF)"
+                  className="px-3 py-1.5 rounded-xl bg-amber-950/50 hover:bg-amber-900/70 border border-amber-600/50 text-amber-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-md"
                 >
-                  <Download className="w-4 h-4 text-purple-300" />
-                  <span>Export Evidence</span>
+                  <FileText className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Court Report (PDF)</span>
+                </button>
+                <button
+                  onClick={handleExportStix}
+                  title="Export OASIS STIX 2.1 Cyber Threat Intelligence JSON bundle for SIEM/MISP"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-950/50 hover:bg-emerald-900/70 border border-emerald-600/50 text-emerald-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-md"
+                >
+                  <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>STIX 2.1 (SIEM)</span>
+                </button>
+                <button
+                  onClick={handleDownloadCase}
+                  title="Export Raw Sealed Dossier JSON"
+                  className="px-3 py-1.5 rounded-xl bg-purple-950/50 hover:bg-purple-900/70 border border-purple-600/50 text-purple-200 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-md"
+                >
+                  <Download className="w-3.5 h-3.5 text-purple-400" />
+                  <span>JSON</span>
                 </button>
               </div>
             </div>

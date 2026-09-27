@@ -177,3 +177,128 @@ describe('Forensic Entity Graph Engine', () => {
     assert.strictEqual(rootNode.risk, 100);
   });
 });
+
+// Test Suite 7: Court-Ready Forensic PDF/HTML & STIX 2.1 Engine
+describe('Court-Ready Forensic PDF/HTML & STIX 2.1 Engine', () => {
+  const { generateStixBundle, generateCourtReportHtml, escapeHtml } = require('../src/reportGenerator');
+  const fs = require('fs');
+  const path = require('path');
+
+  const sampleCase = {
+    caseId: 'CASE-2026-TEST',
+    targetAddress: '115p7UMMngoj1pMvkpHijcRdfJNXj6LrLn',
+    leadExaminer: 'Det. Sarah Vance',
+    threatScore: 100,
+    evidenceSeal: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    lastModified: '2026-09-27T12:00:00.000Z',
+    overview: {
+      address: '115p7UMMngoj1pMvkpHijcRdfJNXj6LrLn',
+      balanceBtc: 1.5,
+      totalReceivedBtc: 52.3,
+      totalSpentBtc: 50.8,
+      txCount: 42,
+    },
+    correlatedThreats: [
+      {
+        entity: 'WannaCry Ransomware',
+        category: 'RANSOMWARE',
+        risk: 100,
+        notes: '2017 NHS extortion attack address',
+      }
+    ],
+    darknetCorrelation: {
+      matched: true,
+      onionTarget: 'http://ransomv3xyz7test.onion',
+      host: 'ransomv3xyz7test.onion',
+      firstSeen: '2026-08-10',
+      intent: 'EXTORTION',
+      confidence: 'HIGH',
+      pageTitle: 'Decryptor Portal',
+      associatedEmails: ['support@decryptor.onion'],
+      associatedPgp: ['47477B59F81B4D0679AF8D30572E8BF0B0F74D4F'],
+    },
+    clusteredAddresses: [
+      {
+        address: '1BoatSLRHtKNngkdXEeobR76b53LETtpyT',
+        heuristic: 'MULTI_INPUT',
+        confidence: 'HIGH',
+        reason: 'Shared transaction inputs',
+        sharedInputsCount: 3,
+      }
+    ],
+    ledger: [
+      {
+        txid: '9f8b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b',
+        timestamp: '2026-09-27T10:00:00.000Z',
+        direction: 'RECEIVED',
+        amountBtc: 0.15,
+        feeBtc: 0.00002,
+        isPeeling: false,
+        isMixer: false,
+      }
+    ],
+    examinerNotes: [
+      { author: 'Det. Vance', timestamp: '2026-09-27T11:00:00Z', note: 'Target actively laundering via CoinJoin.' }
+    ],
+    chainOfCustody: [
+      {
+        timestamp: '2026-09-27T12:00:00.000Z',
+        officer: 'Det. Sarah Vance',
+        action: 'EVIDENCE_SEALED_CRYPTOGRAPHICALLY',
+        sealHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      }
+    ]
+  };
+
+  test('escapes HTML strings correctly to prevent injection in legal documents', () => {
+    assert.strictEqual(escapeHtml('<script>alert("xss")</script>'), '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
+    assert.strictEqual(escapeHtml('Normal text'), 'Normal text');
+    assert.strictEqual(escapeHtml(null), '');
+  });
+
+  test('generates compliant OASIS STIX 2.1 JSON bundle from case dossier', () => {
+    const bundle = generateStixBundle(sampleCase);
+    assert.strictEqual(bundle.type, 'bundle');
+    assert.strictEqual(bundle.spec_version, '2.1');
+    assert.ok(bundle.id.startsWith('bundle--'));
+    assert.ok(Array.isArray(bundle.objects));
+
+    // Verify presence of required STIX domain & observable objects
+    const types = bundle.objects.map(o => o.type);
+    assert.ok(types.includes('identity'), 'STIX bundle missing identity');
+    assert.ok(types.includes('report'), 'STIX bundle missing report');
+    assert.ok(types.includes('indicator'), 'STIX bundle missing indicator');
+    assert.ok(types.includes('threat-actor'), 'STIX bundle missing threat-actor');
+    assert.ok(types.includes('x-gengar-cryptocurrency-wallet'), 'STIX bundle missing crypto observable');
+    assert.ok(types.includes('x-gengar-hidden-service'), 'STIX bundle missing darknet observable');
+    assert.ok(types.includes('relationship'), 'STIX bundle missing relationship');
+
+    // Verify Report Object references
+    const reportObj = bundle.objects.find(o => o.type === 'report');
+    assert.ok(reportObj.object_refs.length > 0);
+    assert.strictEqual(reportObj.spec_version, '2.1');
+  });
+
+  test('generates self-contained FRE 902(14) certified court report HTML document', () => {
+    const html = generateCourtReportHtml(sampleCase, { autoPrint: false });
+    assert.ok(html.includes('<!DOCTYPE html>'));
+    assert.ok(html.includes('FEDERAL RULES OF EVIDENCE RULE 902(14) CERTIFICATION'));
+    assert.ok(html.includes('e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'));
+    assert.ok(html.includes('WannaCry Ransomware'));
+    assert.ok(html.includes('ransomv3xyz7test.onion'));
+    assert.ok(html.includes('Det. Sarah Vance'));
+    assert.ok(html.includes('@media print'));
+    assert.ok(html.includes('FORENSIC EXAMINER ATTESTATION &amp; JURAT'));
+  });
+
+  test('generates STIX 2.1 bundle from existing real case dossier in evidence locker', () => {
+    const casePath = path.join(__dirname, '../data/evidence/CASE-2026-8653.json');
+    if (fs.existsSync(casePath)) {
+      const realCase = JSON.parse(fs.readFileSync(casePath, 'utf8'));
+      const bundle = generateStixBundle(realCase);
+      assert.strictEqual(bundle.type, 'bundle');
+      assert.ok(bundle.objects.length >= 3);
+    }
+  });
+});
+

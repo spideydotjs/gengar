@@ -32,6 +32,11 @@ const {
   buildGraphForAddress,
   buildGlobalIntelligenceGraph,
 } = require('../graphEngine');
+const {
+  generateStixBundle,
+  generateCourtReportHtml,
+} = require('../reportGenerator');
+
 
 const router = express.Router();
 
@@ -513,6 +518,86 @@ router.post('/forensics/case/note', (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// ── GET /api/forensics/case/:id/export/stix ────────────────────────
+/**
+ * @route  GET /api/forensics/case/:id/export/stix
+ * @desc   Export case dossier as an OASIS STIX 2.1 compliant CTI JSON bundle
+ */
+router.get('/forensics/case/:id/export/stix', (req, res) => {
+  try {
+    const caseRecord = EvidenceManager.getCase(req.params.id);
+    if (!caseRecord) {
+      return res.status(404).json({ success: false, error: 'Case not found' });
+    }
+    const stixBundle = generateStixBundle(caseRecord);
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="GENGAR_${caseRecord.caseId}_STIX2.1.json"`);
+    res.send(JSON.stringify(stixBundle, null, 2));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── GET /api/forensics/case/:id/export/html ────────────────────────
+/**
+ * @route  GET /api/forensics/case/:id/export/html
+ * @desc   Render court-ready FRE Rule 902(14) certified evidence report
+ */
+router.get('/forensics/case/:id/export/html', (req, res) => {
+  try {
+    const caseRecord = EvidenceManager.getCase(req.params.id);
+    if (!caseRecord) {
+      return res.status(404).send('<h1>404 Not Found</h1><p>Case not found</p>');
+    }
+    const autoPrint = req.query.print === 'true' || req.query.autoPrint === 'true';
+    const html = generateCourtReportHtml(caseRecord, { autoPrint });
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    res.status(500).send(`<h1>Error</h1><p>${err.message}</p>`);
+  }
+});
+
+// ── POST /api/forensics/report/stix ────────────────────────────────
+/**
+ * @route  POST /api/forensics/report/stix
+ * @desc   Generate STIX 2.1 bundle dynamically from active session data
+ * @body   { caseData: Object }
+ */
+router.post('/forensics/report/stix', (req, res) => {
+  try {
+    const caseData = req.body.caseData || req.body;
+    if (!caseData || !caseData.targetAddress) {
+      return res.status(400).json({ success: false, error: 'Target address is required' });
+    }
+    const stixBundle = generateStixBundle(caseData);
+    res.json({ success: true, bundle: stixBundle });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── POST /api/forensics/report/html ────────────────────────────────
+/**
+ * @route  POST /api/forensics/report/html
+ * @desc   Generate court-ready HTML report dynamically from active session data
+ * @body   { caseData: Object, autoPrint?: boolean }
+ */
+router.post('/forensics/report/html', (req, res) => {
+  try {
+    const { caseData, autoPrint = false } = req.body || {};
+    if (!caseData || !caseData.targetAddress) {
+      return res.status(400).send('<h1>Error</h1><p>Target address is required</p>');
+    }
+    const html = generateCourtReportHtml(caseData, { autoPrint });
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    res.status(500).send(`<h1>Error</h1><p>${err.message}</p>`);
+  }
+});
+
 
 // ── PGP IDENTITY & FINGERPRINT INTELLIGENCE ENDPOINTS ───────────────
 

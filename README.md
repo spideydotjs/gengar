@@ -73,6 +73,8 @@ Traditional OSINT tools struggle with the volatility and latency of hidden servi
   - `RANSOM_EXTORTION` • `ESCROW_DEPOSIT` • `COMMERCE_PAYMENT` • `DONATION` • `VENDOR_BOND` • `EXCHANGE_MIXER`
 - **🔑 PGP Identity & Cross-Onion Linker**: RFC 4880 OpenPGP parsing of public key blocks to extract 40-character fingerprints, Key IDs, and User IDs. Automatically links distinct `.onion` domains operated by the same entity and checks public keyservers (`keys.openpgp.org`) over Tor.
 - **🕸️ Interactive Entity Network Graph**: 60 FPS force-directed canvas graph mapping multi-hop transaction flows, co-spent wallet clusters, peeling chains, mixer signatures, PGP identities, and OFAC threat actors with an interactive inspector drawer.
+- **⚖️ Court-Ready PDF & STIX 2.1 Export**: Federal Rules of Evidence (FRE 902(14)) self-authenticating digital evidence reports with print-to-PDF pagination, Chain of Custody audit trails, cryptographic SHA-256 integrity seals, and OASIS STIX 2.1 JSON bundles for SIEM/MISP/OpenCTI ingestion.
+
 - **🔒 API Key Protection**: Optional Bearer token authorization (`GENGAR_API_KEY`) for secure remote deployments while keeping Docker healthchecks open.
 
 ---
@@ -182,7 +184,13 @@ Available directly within the Web UI dashboard or programmatically via `/api/for
 - `GET /api/blockchain-scan/stream?url=<onionUrl>` — Live SSE stream of discovered wallets and NLP classifications.
 - `POST /api/forensics/track` — Run on-chain ledger analysis, heuristic clustering, and threat correlation.
 - `GET /api/forensics/cases` — List all sealed evidence dossiers in the vault.
+- `GET /api/forensics/case/:id` — Get full sealed case record by case ID.
 - `POST /api/forensics/case/note` — Append examiner notes to a case file and re-seal cryptographic hash.
+- `GET /api/forensics/case/:id/export/html` — Render court-ready FRE Rule 902(14) certified evidence report (`?print=true` for instant print/PDF).
+- `GET /api/forensics/case/:id/export/stix` — Export case dossier as an OASIS STIX 2.1 compliant CTI JSON bundle.
+- `POST /api/forensics/report/html` — Generate court-ready HTML report dynamically from active session data.
+- `POST /api/forensics/report/stix` — Generate STIX 2.1 JSON bundle dynamically from active session data.
+
 
 ### PGP Identity & Fingerprint Intelligence
 - `GET /api/pgp/identities` — List all unique PGP identities discovered across crawl dossiers.
@@ -223,7 +231,7 @@ Copy `.env.example` to `.env` to configure your environment:
 - [x] Cryptographic SHA-256 evidence vault with Chain of Custody
 - [x] OpenPGP RFC 4880 parsing & cross-onion entity correlation
 - [x] **Interactive Visual Entity Graph**: Force-directed network visualization of transaction hops, co-spent clusters, and threat actors
-- [ ] **Court-Ready PDF & STIX 2.1 Reports**: Automated certified forensic PDF documentation and SIEM ingestion
+- [x] **Court-Ready PDF & STIX 2.1 Reports**: Automated certified forensic PDF documentation and SIEM ingestion
 - [ ] **Multi-chain tracking**: Support for EVM (Ethereum, Arbitrum) and TRON (USDT TRC-20)
 - [ ] **Tor Circuit Cycling**: On-demand NEWNYM signaling for automated circuit rotation
 
