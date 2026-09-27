@@ -33,7 +33,6 @@ RUN npm config set fetch-retries 5 \
 
 # Copy application source code
 COPY src/ ./src/
-COPY bin/ ./bin/
 COPY index.js ./
 
 # Copy compiled frontend from Stage 1
