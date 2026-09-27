@@ -28,6 +28,10 @@ const {
   listAllPgpIdentities,
   queryKeyserver,
 } = require('../pgpIntelligence');
+const {
+  buildGraphForAddress,
+  buildGlobalIntelligenceGraph,
+} = require('../graphEngine');
 
 const router = express.Router();
 
@@ -588,6 +592,44 @@ router.get('/pgp/keyserver/:fingerprint', async (req, res) => {
       success: true,
       ...result,
     });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── INTERACTIVE ENTITY GRAPH EXPLORER ENDPOINTS ─────────────────────
+
+/**
+ * @route  GET /api/forensics/graph
+ * @desc   Generate an interconnected entity network graph for a cryptocurrency address
+ * @query  address (string), maxTxs (number)
+ * @access Public
+ */
+router.get('/forensics/graph', async (req, res) => {
+  const { address, maxTxs = 8 } = req.query;
+  if (!address || typeof address !== 'string' || address.trim().length < 25) {
+    return res.status(400).json({ success: false, error: 'Provide a valid address query parameter' });
+  }
+
+  try {
+    const graphData = await buildGraphForAddress(address.trim(), {
+      maxTxs: parseInt(maxTxs, 10) || 8,
+    });
+    res.json(graphData);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * @route  GET /api/forensics/graph/global
+ * @desc   Generate the global darknet intelligence graph across all stored dossiers and threat actors
+ * @access Public
+ */
+router.get('/forensics/graph/global', (req, res) => {
+  try {
+    const globalGraph = buildGlobalIntelligenceGraph();
+    res.json(globalGraph);
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

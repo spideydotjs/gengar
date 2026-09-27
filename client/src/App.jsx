@@ -9,16 +9,18 @@ import ScreenshotsGallery from './components/ScreenshotsGallery';
 import BlockchainScraper from './components/BlockchainScraper';
 import CryptoForensics from './components/CryptoForensics';
 import PgpIdentitiesTab from './components/PgpIdentitiesTab';
-import { Loader2, AlertCircle, Terminal, Camera, ListFilter, ExternalLink, Coins, ShieldAlert, Key } from 'lucide-react';
+import NetworkGraphExplorer from './components/NetworkGraphExplorer';
+import { Loader2, AlertCircle, Terminal, Camera, ListFilter, ExternalLink, Coins, ShieldAlert, Key, Share2 } from 'lucide-react';
 
 export default function App() {
   const [torStatus, setTorStatus] = useState(null);
   const [checkingTor, setCheckingTor] = useState(false);
 
-  // Active Main View Tab: 'results' | 'blockchain' | 'forensics' | 'screenshots' | 'logs'
+  // Active Main View Tab: 'results' | 'blockchain' | 'forensics' | 'graph' | 'pgp' | 'screenshots' | 'logs'
   const [activeTab, setActiveTab] = useState('results');
   const [selectedBlockchainUrl, setSelectedBlockchainUrl] = useState('');
   const [selectedForensicAddress, setSelectedForensicAddress] = useState('');
+  const [selectedGraphAddress, setSelectedGraphAddress] = useState('');
 
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -421,6 +423,11 @@ export default function App() {
     setActiveTab('forensics');
   };
 
+  const handleGraphExplore = (cryptoAddress) => {
+    setSelectedGraphAddress(cryptoAddress || '');
+    setActiveTab('graph');
+  };
+
   // ── Metrics Computation ─────────────────────────────────────────────
   const loadedList = useMemo(() => {
     return rawResults.slice(0, probeLimit);
@@ -549,6 +556,21 @@ export default function App() {
             <span>Crypto Forensics</span>
             <span className="px-1.5 py-0.2 rounded-full bg-red-950 text-red-300 border border-red-700 text-[10px] font-bold">
               EVIDENCE
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('graph')}
+            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 cursor-pointer ${
+              activeTab === 'graph'
+                ? 'bg-gradient-to-r from-cyan-600 to-cyan-500 text-black font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)]'
+                : 'bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-cyan-300'
+            }`}
+          >
+            <Share2 className={`w-4 h-4 ${activeTab === 'graph' ? 'text-black' : 'text-cyan-400'}`} />
+            <span>Entity Graph</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 text-[10px]">
+              NETWORK
             </span>
           </button>
 
@@ -700,6 +722,7 @@ export default function App() {
             defaultUrl={selectedBlockchainUrl}
             onNavigateToSearch={() => setActiveTab('results')}
             onForensicTrace={handleForensicTrace}
+            onGraphExplore={handleGraphExplore}
           />
         )}
 
@@ -707,6 +730,25 @@ export default function App() {
         {activeTab === 'forensics' && (
           <CryptoForensics
             initialTarget={selectedForensicAddress}
+            onGraphExplore={handleGraphExplore}
+          />
+        )}
+
+        {/* TAB 4: INTERACTIVE ENTITY NETWORK GRAPH */}
+        {activeTab === 'graph' && (
+          <NetworkGraphExplorer
+            initialTarget={selectedGraphAddress || selectedForensicAddress}
+            onNavigateToForensics={(addr) => {
+              setSelectedForensicAddress(addr);
+              setActiveTab('forensics');
+            }}
+            onNavigateToScraper={(url) => {
+              setSelectedBlockchainUrl(url);
+              setActiveTab('blockchain');
+            }}
+            onNavigateToPgp={(fp) => {
+              setActiveTab('pgp');
+            }}
           />
         )}
 

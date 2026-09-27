@@ -72,6 +72,7 @@ Traditional OSINT tools struggle with the volatility and latency of hidden servi
 - **🧠 Recursive NLP Blockchain Scraper**: Crawls internal `.onion` subpages to identify crypto wallets (BTC, ETH, XMR, LTC) and classifies intent using weighted context NLP:
   - `RANSOM_EXTORTION` • `ESCROW_DEPOSIT` • `COMMERCE_PAYMENT` • `DONATION` • `VENDOR_BOND` • `EXCHANGE_MIXER`
 - **🔑 PGP Identity & Cross-Onion Linker**: RFC 4880 OpenPGP parsing of public key blocks to extract 40-character fingerprints, Key IDs, and User IDs. Automatically links distinct `.onion` domains operated by the same entity and checks public keyservers (`keys.openpgp.org`) over Tor.
+- **🕸️ Interactive Entity Network Graph**: 60 FPS force-directed canvas graph mapping multi-hop transaction flows, co-spent wallet clusters, peeling chains, mixer signatures, PGP identities, and OFAC threat actors with an interactive inspector drawer.
 - **🔒 API Key Protection**: Optional Bearer token authorization (`GENGAR_API_KEY`) for secure remote deployments while keeping Docker healthchecks open.
 
 ---
@@ -189,6 +190,10 @@ Available directly within the Web UI dashboard or programmatically via `/api/for
 - `POST /api/pgp/parse` — Parse and decode any custom armored PGP public key block on demand.
 - `GET /api/pgp/keyserver/:fingerprint` — Query public keyserver (`keys.openpgp.org`) over Tor for clearnet email linkage.
 
+### Forensic Entity Network Graph
+- `GET /api/forensics/graph?address=<addr>&maxTxs=8` — Generate multi-hop entity graph for a target address (nodes, edges, threat correlation).
+- `GET /api/forensics/graph/global` — Generate the global darknet ecosystem graph across all stored dossiers and threat entities.
+
 ---
 
 ## ⚙️ Environment Variables
@@ -217,10 +222,10 @@ Copy `.env.example` to `.env` to configure your environment:
 - [x] On-chain UTXO tracing and peeling chain heuristics
 - [x] Cryptographic SHA-256 evidence vault with Chain of Custody
 - [x] OpenPGP RFC 4880 parsing & cross-onion entity correlation
+- [x] **Interactive Visual Entity Graph**: Force-directed network visualization of transaction hops, co-spent clusters, and threat actors
+- [ ] **Court-Ready PDF & STIX 2.1 Reports**: Automated certified forensic PDF documentation and SIEM ingestion
 - [ ] **Multi-chain tracking**: Support for EVM (Ethereum, Arbitrum) and TRON (USDT TRC-20)
-- [ ] **Interactive Visual Graph**: Node-link graph visualization of transaction hops and co-spent clusters
 - [ ] **Tor Circuit Cycling**: On-demand NEWNYM signaling for automated circuit rotation
-- [ ] **Threat Format Export**: Export dossiers in standardized STIX 2.1 and MISP threat formats
 
 ---
 

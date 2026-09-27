@@ -15,6 +15,7 @@ describe('Gengar Core Module Integrity', () => {
     assert.doesNotThrow(() => require('../src/cryptoForensics'));
     assert.doesNotThrow(() => require('../src/screenshot'));
     assert.doesNotThrow(() => require('../src/pgpIntelligence'));
+    assert.doesNotThrow(() => require('../src/graphEngine'));
     assert.doesNotThrow(() => require('../src/routes/search'));
   });
 });
@@ -139,5 +140,40 @@ describe('PGP Identity & Fingerprint Intelligence Engine', () => {
     assert.strictEqual(typeof res.matched, 'boolean');
     assert.ok(Array.isArray(res.onionSites));
     assert.ok(Array.isArray(res.associatedWallets));
+  });
+});
+
+// Test Suite 6: Forensic Entity Graph Engine
+describe('Forensic Entity Graph Engine', () => {
+  const { buildGlobalIntelligenceGraph, buildGraphForAddress, makeNodeId } = require('../src/graphEngine');
+
+  test('generates standard node identifiers with type prefix', () => {
+    assert.strictEqual(makeNodeId('WALLET', '115p7UMMngoj'), 'wallet:115p7ummngoj');
+    assert.strictEqual(makeNodeId('ONION', 'HTTP://TEST.ONION'), 'onion:http://test.onion');
+  });
+
+  test('builds global darknet intelligence graph from threat DB and scan dossiers', () => {
+    const res = buildGlobalIntelligenceGraph();
+    assert.strictEqual(res.success, true);
+    assert.ok(Array.isArray(res.graph.nodes));
+    assert.ok(Array.isArray(res.graph.edges));
+    assert.ok(res.graph.nodes.length > 0);
+    assert.ok(res.summary.totalNodes > 0);
+
+    // Verify presence of threat nodes
+    const hasThreat = res.graph.nodes.some(n => n.type === 'THREAT_ACTOR');
+    assert.strictEqual(hasThreat, true);
+  });
+
+  test('generates entity graph for target wallet address with threat correlation', async () => {
+    const target = '115p7UMMngoj1pMvkpHijcRdfJNXj6LrLn';
+    const res = await buildGraphForAddress(target, { maxTxs: 2 });
+    assert.strictEqual(res.success, true);
+    assert.ok(res.graph.nodes.length >= 2);
+    assert.ok(res.graph.edges.length >= 1);
+
+    const rootNode = res.graph.nodes.find(n => n.type === 'TARGET_WALLET');
+    assert.ok(rootNode);
+    assert.strictEqual(rootNode.risk, 100);
   });
 });
