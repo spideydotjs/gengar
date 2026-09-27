@@ -41,6 +41,11 @@ const {
   generateStixBundle,
   generateCourtReportHtml,
 } = require('../reportGenerator');
+const {
+  detectChain,
+  analyzeMultiChainForensics,
+} = require('../multiChainForensics');
+
 
 
 const router = express.Router();
@@ -469,11 +474,45 @@ router.post('/forensics/track', async (req, res) => {
   const cleanAddr = address.trim();
 
   try {
+    const chain = detectChain(cleanAddr);
+
+    // Multi-chain tracking for EVM (Ethereum) and TRON (TRC-20 USDT)
+    if (chain === 'ETH' || chain === 'TRON') {
+      const multiResult = await analyzeMultiChainForensics(cleanAddr, { examiner, maxTxs: 35 });
+      if (multiResult) {
+        const darknetMatch = correlateWithGengarDarknet(cleanAddr);
+        const caseDossier = EvidenceManager.saveCaseDossier({
+          ...multiResult,
+          darknetCorrelation: darknetMatch,
+          examinerNotes: [`Initial ${chain} forensic trace executed at ${new Date().toISOString()}`],
+        });
+
+        return res.json({
+          success: true,
+          caseId: caseDossier.caseId,
+          evidenceSeal: caseDossier.evidenceSeal,
+          chain,
+          threatScore: multiResult.threatScore,
+          overview: multiResult.overview,
+          threats: multiResult.correlatedThreats,
+          darknetMatch,
+          clusteredAddresses: multiResult.clusteredAddresses,
+          counterparties: multiResult.clusteredAddresses.map(c => c.address),
+          peelingChainsCount: multiResult.ledger.filter(l => l.isPeeling).length,
+          coinJoinsCount: multiResult.ledger.filter(l => l.isMixer).length,
+          ledger: multiResult.ledger,
+          caseDossier,
+        });
+      }
+    }
+
+    // Default Bitcoin UTXO forensics
     const overview = await fetchAddressOverview(cleanAddr);
     const rawTxs = await fetchAddressTransactions(cleanAddr, 35);
     const analysis = analyzeTransactionsForensics(cleanAddr, rawTxs);
     const threats = correlateThreatIntel(cleanAddr, analysis.coSpentAddresses, analysis.counterparties);
     const darknetMatch = correlateWithGengarDarknet(cleanAddr);
+
 
     const caseDossier = EvidenceManager.saveCaseDossier({
       targetAddress: cleanAddr,

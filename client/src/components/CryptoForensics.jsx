@@ -7,14 +7,29 @@ import {
 } from 'lucide-react';
 
 const PRESETS = [
-  { label: 'WannaCry Global Ransomware', address: '115p7UMMngoj1pMvkpHijcRdfJNXj6LrLn', category: 'RANSOMWARE' },
-  { label: 'Silk Road FBI Seizure', address: '1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX', category: 'DARKNET' },
-  { label: 'LockBit 3.0 Syndicate', address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', category: 'RANSOMWARE' },
-  { label: 'Satoshi Genesis Reward', address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa', category: 'GENESIS' },
-  { label: 'Binance Hot VASP Deposit', address: '1NDyJtNTjmwk5xPNhjgAMu4HDHigtobu1s', category: 'EXCHANGE' },
+  // Bitcoin
+  { label: 'WannaCry (BTC)', address: '115p7UMMngoj1pMvkpHijcRdfJNXj6LrLn', category: 'RANSOMWARE', chain: 'BTC' },
+  { label: 'Silk Road (BTC)', address: '1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX', category: 'DARKNET', chain: 'BTC' },
+  { label: 'LockBit 3.0 (BTC)', address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh', category: 'RANSOMWARE', chain: 'BTC' },
+  // Ethereum / EVM
+  { label: 'Tornado Router (ETH)', address: '0xd90e2f925da726b50c4ed8d0fb90ad053324f31b', category: 'MIXER', chain: 'ETH' },
+  { label: 'Lazarus Ronin (ETH)', address: '0x098b716b8aaf21512996dc57eb0615e2383e2f96', category: 'HEIST', chain: 'ETH' },
+  // TRON
+  { label: 'Garantex Gateway (TRX)', address: 'TYDzsYUEpvnYmQk4zGP9sWWcTEd2MiAtW6', category: 'SANCTIONED', chain: 'TRON' },
+  { label: 'Binance Hot (TRX)', address: 'TLa2f6VPqDgRE67v1736s7bJ8Ray5wYjU7', category: 'EXCHANGE', chain: 'TRON' },
+  { label: 'Tether Contract (TRX)', address: 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t', category: 'TREASURY', chain: 'TRON' },
 ];
 
+function detectClientChain(addr) {
+  if (!addr) return 'BTC';
+  const a = addr.trim();
+  if (/^0x[a-fA-F0-9]{40}$/i.test(a)) return 'ETH';
+  if (/^T[1-9A-HJ-NP-Za-km-z]{33}$/.test(a)) return 'TRON';
+  return 'BTC';
+}
+
 export default function CryptoForensics({ initialTarget = '' }) {
+
   const [targetAddress, setTargetAddress] = useState(initialTarget || '115p7UMMngoj1pMvkpHijcRdfJNXj6LrLn');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -220,11 +235,20 @@ export default function CryptoForensics({ initialTarget = '' }) {
         <div className="mt-4 flex flex-wrap md:flex-nowrap items-center gap-2">
           <div className="flex-1 flex items-center gap-2 bg-black rounded-xl px-3.5 py-2.5 border border-zinc-700 focus-within:border-cyan-500 transition-colors">
             <Search className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+              detectClientChain(targetAddress) === 'ETH'
+                ? 'bg-indigo-950 text-indigo-300 border border-indigo-700'
+                : detectClientChain(targetAddress) === 'TRON'
+                  ? 'bg-red-950 text-red-300 border border-red-700'
+                  : 'bg-amber-950 text-amber-300 border border-amber-700'
+            }`}>
+              {detectClientChain(targetAddress)}
+            </span>
             <input
               type="text"
               value={targetAddress}
               onChange={(e) => setTargetAddress(e.target.value)}
-              placeholder="Enter Bitcoin target address (e.g. 115p7UMMngoj1pMvkpHijcRdfJNXj6LrLn)"
+              placeholder="Enter target address (BTC: 115p..., ETH: 0xd90e..., TRON: TYDz...)"
               className="w-full bg-transparent text-white focus:outline-none placeholder-zinc-500 text-xs font-mono font-semibold"
               disabled={loading}
               onKeyDown={(e) => e.key === 'Enter' && executeTrace(targetAddress)}
@@ -241,6 +265,7 @@ export default function CryptoForensics({ initialTarget = '' }) {
           </button>
         </div>
       </div>
+
 
       {/* Past Cases Locker Drawer */}
       {showCasesDrawer && (
@@ -327,8 +352,14 @@ export default function CryptoForensics({ initialTarget = '' }) {
                   <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">
                     FORENSIC TARGET PROFILE
                   </span>
-                  <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[10px] font-bold">
-                    BTC ASSET
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                    (caseData.chain || detectClientChain(caseData.overview?.address)) === 'ETH'
+                      ? 'bg-indigo-950 text-indigo-300 border border-indigo-700'
+                      : (caseData.chain || detectClientChain(caseData.overview?.address)) === 'TRON'
+                        ? 'bg-red-950 text-red-300 border border-red-700'
+                        : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
+                  }`}>
+                    {caseData.chain || detectClientChain(caseData.overview?.address)} ASSET
                   </span>
                 </div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2 mt-1 select-all">
@@ -342,11 +373,17 @@ export default function CryptoForensics({ initialTarget = '' }) {
                     {copiedText === caseData.overview?.address ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                   </button>
                   <a
-                    href={`https://mempool.space/address/${caseData.overview?.address}`}
+                    href={
+                      (caseData.chain || detectClientChain(caseData.overview?.address)) === 'ETH'
+                        ? `https://eth.blockscout.com/address/${caseData.overview?.address}`
+                        : (caseData.chain || detectClientChain(caseData.overview?.address)) === 'TRON'
+                          ? `https://tronscan.org/#/address/${caseData.overview?.address}`
+                          : `https://mempool.space/address/${caseData.overview?.address}`
+                    }
                     target="_blank"
                     rel="noreferrer"
                     className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-cyan-300 transition-colors"
-                    title="Open in Mempool"
+                    title="Open in Block Explorer"
                   >
                     <ExternalLink className="w-3 h-3" />
                   </a>
@@ -386,49 +423,128 @@ export default function CryptoForensics({ initialTarget = '' }) {
               </div>
             </div>
 
-            {/* Metrics Grid */}
+            {/* Metrics Grid (Chain-Aware) */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
-                <div className="text-[10px] text-zinc-400 font-bold">CONFIRMED BALANCE</div>
-                <div className="text-lg font-bold text-emerald-400 mt-1">
-                  {caseData.overview?.balanceBtc?.toFixed(6)} BTC
-                </div>
-                <div className="text-[10px] text-zinc-500 mt-0.5 font-sans">
-                  ≈ ${(caseData.overview?.balanceBtc * 65000).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
-                <div className="text-[10px] text-zinc-400 font-bold">TOTAL TRANSFERS</div>
-                <div className="text-lg font-bold text-white mt-1">
-                  {caseData.overview?.txCount} confirmed
-                </div>
-                <div className="text-[10px] text-zinc-500 mt-0.5">
-                  {caseData.overview?.unconfirmedTxCount || 0} in mempool
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
-                <div className="text-[10px] text-zinc-400 font-bold">LIFETIME RECEIVED</div>
-                <div className="text-lg font-bold text-cyan-300 mt-1">
-                  {caseData.overview?.totalReceivedBtc?.toFixed(4)} BTC
-                </div>
-                <div className="text-[10px] text-zinc-500 mt-0.5">
-                  Spent: {caseData.overview?.totalSpentBtc?.toFixed(4)} BTC
-                </div>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
-                <div className="text-[10px] text-zinc-400 font-bold">HEURISTIC ANOMALIES</div>
-                <div className="text-lg font-bold text-amber-300 mt-1 flex items-center gap-1.5">
-                  <span>{caseData.peelingChainsCount} Peeling</span>
-                  <span className="text-zinc-600">•</span>
-                  <span>{caseData.coinJoinsCount} Mixers</span>
-                </div>
-                <div className="text-[10px] text-zinc-500 mt-0.5">
-                  {caseData.clusteredAddresses?.length || 0} co-spent wallets
-                </div>
-              </div>
+              {caseData.chain === 'ETH' ? (
+                <>
+                  <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-400 font-bold">ETH BALANCE</div>
+                    <div className="text-lg font-bold text-emerald-400 mt-1">
+                      {caseData.overview?.balanceEth ?? 0} ETH
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5 font-sans">
+                      ≈ ${(caseData.overview?.balanceUsd ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-400 font-bold">TOTAL TRANSACTIONS</div>
+                    <div className="text-lg font-bold text-white mt-1">
+                      {caseData.overview?.txCount ?? caseData.ledger?.length} confirmed
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                      Type: {caseData.overview?.isContract ? 'Smart Contract' : 'EOA Wallet'}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-400 font-bold">METADATA / CONTRACT</div>
+                    <div className="text-sm font-bold text-cyan-300 mt-1 truncate">
+                      {caseData.overview?.ensDomain || caseData.overview?.contractName || 'Standard Account'}
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                      EVM Account Architecture
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-400 font-bold">PRIVACY MIXER SIGNALS</div>
+                    <div className="text-lg font-bold text-amber-300 mt-1 flex items-center gap-1.5">
+                      <span>{caseData.coinJoinsCount ?? 0} Mixers</span>
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                      {caseData.clusteredAddresses?.length || 0} smart contract counterparties
+                    </div>
+                  </div>
+                </>
+              ) : caseData.chain === 'TRON' ? (
+                <>
+                  <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-400 font-bold">TRC-20 USDT BALANCE</div>
+                    <div className="text-lg font-bold text-emerald-400 mt-1">
+                      {(caseData.overview?.balanceUsdt ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5 font-sans">
+                      ≈ ${(caseData.overview?.balanceUsd ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-400 font-bold">TRX NATIVE BALANCE</div>
+                    <div className="text-lg font-bold text-white mt-1">
+                      {caseData.overview?.balanceTrx ?? 0} TRX
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                      {caseData.overview?.accountName || 'TRON Mainnet Wallet'}
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-400 font-bold">TOTAL TRC-20 TRANSFERS</div>
+                    <div className="text-lg font-bold text-cyan-300 mt-1">
+                      {caseData.overview?.txCount ?? caseData.ledger?.length} transfers
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                      High liquidity rail
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-400 font-bold">LAYERING / OTC SIGNALS</div>
+                    <div className="text-lg font-bold text-amber-300 mt-1 flex items-center gap-1.5">
+                      <span>{caseData.peelingChainsCount ?? 0} High-Volume</span>
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                      {caseData.clusteredAddresses?.length || 0} active counterparties
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-400 font-bold">CONFIRMED BALANCE</div>
+                    <div className="text-lg font-bold text-emerald-400 mt-1">
+                      {caseData.overview?.balanceBtc?.toFixed(6)} BTC
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5 font-sans">
+                      ≈ ${(caseData.overview?.balanceBtc * 65000).toLocaleString(undefined, { maximumFractionDigits: 2 })} USD
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-400 font-bold">TOTAL TRANSFERS</div>
+                    <div className="text-lg font-bold text-white mt-1">
+                      {caseData.overview?.txCount} confirmed
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                      {caseData.overview?.unconfirmedTxCount || 0} in mempool
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-400 font-bold">LIFETIME RECEIVED</div>
+                    <div className="text-lg font-bold text-cyan-300 mt-1">
+                      {caseData.overview?.totalReceivedBtc?.toFixed(4)} BTC
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                      Spent: {caseData.overview?.totalSpentBtc?.toFixed(4)} BTC
+                    </div>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-black border border-zinc-800">
+                    <div className="text-[10px] text-zinc-400 font-bold">HEURISTIC ANOMALIES</div>
+                    <div className="text-lg font-bold text-amber-300 mt-1 flex items-center gap-1.5">
+                      <span>{caseData.peelingChainsCount} Peeling</span>
+                      <span className="text-zinc-600">•</span>
+                      <span>{caseData.coinJoinsCount} Mixers</span>
+                    </div>
+                    <div className="text-[10px] text-zinc-500 mt-0.5">
+                      {caseData.clusteredAddresses?.length || 0} co-spent wallets
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -634,7 +750,13 @@ export default function CryptoForensics({ initialTarget = '' }) {
                                 {tx.txid.slice(0, 16)}...{tx.txid.slice(-8)}
                               </span>
                               <a
-                                href={`https://mempool.space/tx/${tx.txid}`}
+                                href={
+                                  caseData.chain === 'ETH'
+                                    ? `https://eth.blockscout.com/tx/${tx.txid}`
+                                    : caseData.chain === 'TRON'
+                                    ? `https://tronscan.org/#/transaction/${tx.txid}`
+                                    : `https://mempool.space/tx/${tx.txid}`
+                                }
                                 target="_blank"
                                 rel="noreferrer"
                                 onClick={(e) => e.stopPropagation()}
@@ -644,13 +766,18 @@ export default function CryptoForensics({ initialTarget = '' }) {
                               </a>
                             </div>
                             <div className="text-[10px] text-zinc-500 mt-0.5">
-                              {tx.timestamp} • Fee: {tx.feeBtc?.toFixed(6)} BTC
+                              {tx.timestamp} • Fee: {tx.feeBtc != null ? tx.feeBtc.toFixed(6) : '0.000000'} {tx.feeSymbol || (caseData.chain === 'ETH' ? 'ETH' : caseData.chain === 'TRON' ? 'TRX' : 'BTC')}
                             </div>
                           </div>
                         </div>
 
                         {/* Anomaly Badges */}
                         <div className="flex items-center gap-2">
+                          {tx.method && (
+                            <span className="px-2 py-0.5 rounded-full bg-purple-950 border border-purple-500/50 text-purple-300 font-bold text-[10px] uppercase font-mono">
+                              fn: {tx.method}
+                            </span>
+                          )}
                           {tx.isPeeling && (
                             <span className="px-2 py-0.5 rounded-full bg-amber-950 border border-amber-500/50 text-amber-300 font-bold text-[10px]">
                               ⚡ PEELING
@@ -658,14 +785,14 @@ export default function CryptoForensics({ initialTarget = '' }) {
                           )}
                           {tx.isMixer && (
                             <span className="px-2 py-0.5 rounded-full bg-red-950 border border-red-500/50 text-red-300 font-bold text-[10px]">
-                              🌀 COINJOIN
+                              🌀 COINJOIN / MIXER
                             </span>
                           )}
 
                           <span className={`text-sm font-bold font-mono ${
                             isReceived ? 'text-emerald-400' : isSent ? 'text-rose-400' : 'text-zinc-300'
                           }`}>
-                            {isReceived ? '+' : isSent ? '-' : ''}{tx.amountBtc?.toFixed(6)} BTC
+                            {isReceived ? '+' : isSent ? '-' : ''}{tx.amountBtc != null ? tx.amountBtc.toFixed(4) : '0.0000'} {tx.amountSymbol || (caseData.chain === 'TRON' ? 'USDT' : caseData.chain === 'ETH' ? 'ETH' : 'BTC')}
                           </span>
 
                           <button className="text-zinc-400 hover:text-white p-1">
@@ -685,7 +812,7 @@ export default function CryptoForensics({ initialTarget = '' }) {
                             {(tx.inputs || []).map((inp, idx) => (
                               <div key={idx} className="flex items-center justify-between text-[11px] gap-2">
                                 <span className="text-zinc-300 font-mono truncate select-all">{inp.address}</span>
-                                <span className="text-amber-300 font-bold shrink-0">{inp.valueBtc?.toFixed(4)} BTC</span>
+                                <span className="text-amber-300 font-bold shrink-0">{inp.valueBtc?.toFixed(4)} {tx.amountSymbol || (caseData.chain === 'TRON' ? 'USDT' : caseData.chain === 'ETH' ? 'ETH' : 'BTC')}</span>
                               </div>
                             ))}
                           </div>
@@ -698,7 +825,7 @@ export default function CryptoForensics({ initialTarget = '' }) {
                             {(tx.outputs || []).map((out, idx) => (
                               <div key={idx} className="flex items-center justify-between text-[11px] gap-2">
                                 <span className="text-zinc-300 font-mono truncate select-all">{out.address}</span>
-                                <span className="text-cyan-300 font-bold shrink-0">{out.valueBtc?.toFixed(4)} BTC</span>
+                                <span className="text-cyan-300 font-bold shrink-0">{out.valueBtc?.toFixed(4)} {tx.amountSymbol || (caseData.chain === 'TRON' ? 'USDT' : caseData.chain === 'ETH' ? 'ETH' : 'BTC')}</span>
                               </div>
                             ))}
                           </div>

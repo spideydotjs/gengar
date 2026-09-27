@@ -75,8 +75,7 @@ Traditional OSINT tools struggle with the volatility and latency of hidden servi
 - **🕸️ Interactive Entity Network Graph**: 60 FPS force-directed canvas graph mapping multi-hop transaction flows, co-spent wallet clusters, peeling chains, mixer signatures, PGP identities, and OFAC threat actors with an interactive inspector drawer.
 - **⚖️ Court-Ready PDF & STIX 2.1 Export**: Federal Rules of Evidence (FRE 902(14)) self-authenticating digital evidence reports with print-to-PDF pagination, Chain of Custody audit trails, cryptographic SHA-256 integrity seals, and OASIS STIX 2.1 JSON bundles for SIEM/MISP/OpenCTI ingestion.
 - **🔄 Tor Circuit Cycling & Identity Rotation**: On-demand Tor ControlPort `SIGNAL NEWNYM` combined with RFC 1928 SOCKS5 stream isolation (`IsolateSOCKSAuth`), providing instant exit IP rotation, zero-cooldown circuit switching, and automated background anti-blocking intervals.
-
-
+- **🌐 Multi-Chain Forensics (EVM & TRON USDT)**: Cross-chain intelligence covering Bitcoin UTXO flows, Ethereum / EVM account execution (smart contracts, Tornado Cash mixers, Lazarus Group heists), and TRON TRC-20 high-volume stablecoin laundering and OTC gateways.
 - **🔒 API Key Protection**: Optional Bearer token authorization (`GENGAR_API_KEY`) for secure remote deployments while keeping Docker healthchecks open.
 
 ---
@@ -242,7 +241,9 @@ Copy `.env.example` to `.env` to configure your environment:
 - [x] **Interactive Visual Entity Graph**: Force-directed network visualization of transaction hops, co-spent clusters, and threat actors
 - [x] **Court-Ready PDF & STIX 2.1 Reports**: Automated certified forensic PDF documentation and SIEM ingestion
 - [x] **Tor Circuit Cycling**: On-demand NEWNYM signaling and SOCKS5 stream isolation for automated circuit rotation
-- [ ] **Multi-chain tracking**: Support for EVM (Ethereum, Arbitrum) and TRON (USDT TRC-20)
+- [x] **Multi-chain tracking**: Support for EVM (Ethereum, Arbitrum) and TRON (USDT TRC-20)
+- [ ] **Automated AI Case Summarization**: Local LLM (Ollama) automated executive briefing & OSINT report generator
+- [ ] **Target Watchlist & Automated Recurring Triage**: Background cron monitoring of .onion threat targets with webhook alerts
 
 
 ---

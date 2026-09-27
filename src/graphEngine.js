@@ -20,8 +20,15 @@ const {
   EvidenceManager,
 } = require('./cryptoForensics');
 
+const {
+  detectChain,
+  MULTI_CHAIN_THREAT_INTEL,
+  analyzeMultiChainForensics,
+} = require('./multiChainForensics');
+
 const { correlatePgpAcrossDossiers, listAllPgpIdentities } = require('./pgpIntelligence');
 const { listDossiers, getDossier } = require('./blockchainScraper');
+
 
 /**
  * Node types supported in the Gengar Entity Graph
@@ -99,7 +106,82 @@ async function buildGraphForAddress(address, options = {}) {
     coin: 'BTC',
   });
 
-  // 2. Threat Intelligence Correlation
+  // Check if target is EVM or TRON
+  const chain = detectChain(cleanAddr);
+  if (chain === 'ETH' || chain === 'TRON') {
+    const multiForensics = await analyzeMultiChainForensics(cleanAddr, { maxTxs });
+    if (multiForensics) {
+      const threatScore = multiForensics.threatScore || 0;
+      nodesMap.get(targetNodeId).risk = threatScore;
+      nodesMap.get(targetNodeId).meta.coin = chain;
+      nodesMap.get(targetNodeId).meta.balance = chain === 'ETH' ? `${multiForensics.overview.balanceEth} ETH` : `${multiForensics.overview.balanceUsdt} USDT`;
+      nodesMap.get(targetNodeId).meta.txCount = multiForensics.overview.txCount;
+
+      // Add Threat Actors
+      (multiForensics.correlatedThreats || []).forEach((t) => {
+        const threatNodeId = makeNodeId('THREAT', t.entity);
+        const nodeType = t.category.includes('EXCHANGE') ? 'EXCHANGE' : 'THREAT_ACTOR';
+        addNode(threatNodeId, t.entity, nodeType, t.risk, { category: t.category, notes: t.notes });
+        addEdge(targetNodeId, threatNodeId, 'IDENTIFIED_AS', 'IDENTIFIED_AS');
+      });
+
+      // Add Clustered Counterparties
+      (multiForensics.clusteredAddresses || []).forEach((cl) => {
+        const clNodeId = makeNodeId('WALLET', cl.address);
+        addNode(clNodeId, `${cl.address.slice(0, 8)}...`, 'WALLET', Math.max(15, threatScore * 0.7), {
+          fullAddress: cl.address,
+          clusterHeuristic: cl.heuristic,
+        });
+        addEdge(targetNodeId, clNodeId, 'COUNTERPARTY', 'CO_SPENT_CLUSTER');
+      });
+
+      // Add Ledger Transactions & Flows
+      (multiForensics.ledger || []).slice(0, maxTxs).forEach((tx) => {
+        const edgeType = tx.isMixer ? 'COINJOIN_MIXER' : (tx.isPeeling ? 'PEEL_CHAIN' : 'TRANSFERRED');
+        const edgeLabel = `${tx.amount} ${tx.amountSymbol || chain}`;
+        if (tx.counterparty && tx.counterparty !== '0x0' && tx.counterparty !== 'N/A') {
+          const cpNodeId = makeNodeId('WALLET', tx.counterparty);
+          addNode(cpNodeId, `${tx.counterparty.slice(0, 8)}...`, 'WALLET', tx.isMixer ? 90 : 15, {
+            fullAddress: tx.counterparty,
+          });
+          if (tx.direction === 'RECEIVED') {
+            addEdge(cpNodeId, targetNodeId, edgeLabel, edgeType);
+          } else {
+            addEdge(targetNodeId, cpNodeId, edgeLabel, edgeType);
+          }
+        }
+      });
+
+      // Check darknet correlation
+      const darknet = correlateWithGengarDarknet(cleanAddr);
+      if (darknet && darknet.matched && darknet.onionTarget) {
+        const onionNodeId = makeNodeId('ONION', darknet.onionTarget);
+        addNode(onionNodeId, darknet.onionTarget.replace(/^https?:\/\//, '').slice(0, 18) + '...', 'ONION_SITE', 60, {
+          fullUrl: darknet.onionTarget,
+          host: darknet.host,
+          scannedAt: darknet.firstSeen,
+          intent: darknet.intent,
+        });
+        addEdge(onionNodeId, targetNodeId, darknet.intent || 'HOSTS_WALLET', 'HOSTS_WALLET');
+      }
+
+      return {
+        success: true,
+        graph: {
+          nodes: Array.from(nodesMap.values()),
+          edges: edgesList,
+        },
+        summary: {
+          totalNodes: nodesMap.size,
+          totalEdges: edgesList.length,
+          threatScore,
+          clusterCount: multiForensics.clusteredAddresses?.length || 0,
+        },
+      };
+    }
+  }
+
+  // 2. Threat Intelligence Correlation (Bitcoin fallback)
   const threats = correlateThreatIntel(cleanAddr);
   const threatScore = threats.threatScore || 0;
   nodesMap.get(targetNodeId).risk = threatScore;
@@ -120,6 +202,7 @@ async function buildGraphForAddress(address, options = {}) {
   }
 
   // 3. On-chain Transactions & UTXO Ledger
+
   let txs = [];
   let overview = null;
   try {
@@ -283,7 +366,25 @@ function buildGlobalIntelligenceGraph() {
     });
   });
 
+  // 1b. Add Multi-Chain Threat Hub Nodes (EVM & TRON)
+  MULTI_CHAIN_THREAT_INTEL.slice(0, 6).forEach((t) => {
+    const threatId = makeNodeId('THREAT', t.entity);
+    const isExchange = t.category.includes('EXCHANGE') || t.category.includes('TREASURY');
+    addNode(threatId, t.entity, isExchange ? 'EXCHANGE' : 'THREAT_ACTOR', t.risk, {
+      category: t.category,
+      chain: t.chain,
+      notes: t.notes,
+    });
+
+    (t.addresses || []).slice(0, 2).forEach((addr) => {
+      const addrId = makeNodeId('WALLET', addr);
+      addNode(addrId, `${addr.slice(0, 8)}...`, 'WALLET', t.risk, { fullAddress: addr, chain: t.chain });
+      addEdge(addrId, threatId, 'IDENTIFIED_AS', 'IDENTIFIED_AS');
+    });
+  });
+
   // 2. Add Crawled Dossiers and Wallets
+
   const dossiers = listDossiers().slice(0, 10);
   dossiers.forEach((d) => {
     const fullDossier = getDossier(d.id);

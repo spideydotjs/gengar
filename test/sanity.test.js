@@ -363,4 +363,64 @@ describe('Tor Circuit Manager & Stream Isolation Engine', () => {
   });
 });
 
+// Test Suite 9: Multi-Chain Forensics Engine (EVM & TRON)
+describe('Multi-Chain Forensics Engine (EVM & TRON TRC-20)', () => {
+  const {
+    detectChain,
+    correlateMultiChainThreats,
+    MULTI_CHAIN_THREAT_INTEL,
+  } = require('../src/multiChainForensics');
+
+  test('detects address chains accurately: BTC, ETH, and TRON', () => {
+    // Bitcoin addresses
+    assert.strictEqual(detectChain('115p7UMMngoj1pMvkpHijcRdfJNXj6LrLn'), 'BTC');
+    assert.strictEqual(detectChain('bc1qgdjqv0av3q56jvd82tkdjpy7gdp9ut8tlqmgrpmv24sq90ecnvqqjwvw97'), 'BTC');
+    assert.strictEqual(detectChain('3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy'), 'BTC');
+
+    // EVM / Ethereum addresses
+    assert.strictEqual(detectChain('0xd90e2f925da726b50c4ed8d0fb90ad053324f31b'), 'ETH');
+    assert.strictEqual(detectChain('0x098b716b8aaf21512996dc57eb0615e2383e2f96'), 'ETH');
+
+    // TRON addresses
+    assert.strictEqual(detectChain('TYDzsYUEpvnYmQk4zGP9sWWcTEd2MiAtW6'), 'TRON');
+    assert.strictEqual(detectChain('TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'), 'TRON');
+
+    // Unknown or invalid formats
+    assert.strictEqual(detectChain('invalid-crypto-wallet'), 'UNKNOWN');
+    assert.strictEqual(detectChain(''), 'UNKNOWN');
+  });
+
+  test('correlates known threat intelligence for EVM Tornado Cash and Lazarus Group', () => {
+    const tornadoMatch = correlateMultiChainThreats('0xd90e2f925da726b50c4ed8d0fb90ad053324f31b');
+    assert.ok(tornadoMatch.matched);
+    assert.strictEqual(tornadoMatch.chain, 'ETH');
+    assert.strictEqual(tornadoMatch.threats[0].category, 'MIXER_TUMBLER');
+    assert.ok(tornadoMatch.threats[0].risk >= 95);
+
+    const lazarusMatch = correlateMultiChainThreats('0x098b716b8aaf21512996dc57eb0615e2383e2f96');
+    assert.ok(lazarusMatch.matched);
+    assert.strictEqual(lazarusMatch.threats[0].category, 'STATE_ACTOR_HEIST');
+  });
+
+  test('correlates known threat intelligence for TRON Garantex USDT OTC gateway', () => {
+    const garantexMatch = correlateMultiChainThreats('TYDzsYUEpvnYmQk4zGP9sWWcTEd2MiAtW6');
+    assert.ok(garantexMatch.matched);
+    assert.strictEqual(garantexMatch.chain, 'TRON');
+    assert.strictEqual(garantexMatch.threats[0].category, 'SANCTIONED_EXCHANGE');
+    assert.strictEqual(garantexMatch.threats[0].risk, 94);
+  });
+
+  test('threat intel database integrity check', () => {
+    assert.ok(MULTI_CHAIN_THREAT_INTEL.length >= 5);
+    for (const intel of MULTI_CHAIN_THREAT_INTEL) {
+      assert.ok(['ETH', 'TRON'].includes(intel.chain));
+      assert.ok(intel.category);
+      assert.ok(intel.entity);
+      assert.ok(typeof intel.risk === 'number');
+      assert.ok(Array.isArray(intel.addresses) && intel.addresses.length > 0);
+    }
+  });
+});
+
+
 
