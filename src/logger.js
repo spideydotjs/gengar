@@ -29,6 +29,12 @@ const logger = {
   warn: (...a) => log('warn', ...a),
   error: (...a) => log('error', ...a),
   ghost: (...a) => log('ghost', ...a),
+  debug: (...a) => {
+    if (process.env.DEBUG || process.env.NODE_ENV !== 'production') {
+      log('info', ...a);
+    }
+  },
+
 
   /** Express-compatible request logger middleware */
   middleware(req, res, next) {

@@ -1,5 +1,6 @@
 # Gengar Dark-Web OSINT Tor Configuration
 SocksPort 0.0.0.0:9050
+ControlPort 0.0.0.0:9051
 Log notice stdout
 DataDirectory /var/lib/tor
 ClientOnly 1

@@ -38,6 +38,9 @@ services:
       - PORT=6700
       - HOST=0.0.0.0
       - TOR_SOCKS=socks5h://tor:9050
+      - TOR_CONTROL_HOST=tor
+      - TOR_CONTROL_PORT=9051
+
     volumes:
       # Persistent storage for captured screenshots, OSINT dossiers & evidence cases
       - ./screenshots:/app/screenshots

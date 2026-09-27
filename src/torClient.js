@@ -11,18 +11,25 @@
 
 const axios              = require('axios');
 const { SocksProxyAgent } = require('socks-proxy-agent');
+const {
+  getIsolatedTorAgent,
+  cycleCircuit,
+  getCircuitStatus,
+  configureAutoCycle,
+} = require('./torCircuitManager');
 
 // ── Tor SOCKS5 proxy ───────────────────────────────────────────────
 const TOR_SOCKS = process.env.TOR_SOCKS || 'socks5h://127.0.0.1:9050';
 
 /**
- * createTorAgent()
- * Returns a fresh SocksProxyAgent for each request.
+ * createTorAgent(circuitToken?)
+ * Returns an isolated SocksProxyAgent bound to the active or specified circuit.
  * Using socks5h:// ensures DNS is resolved inside Tor (needed for .onion).
  */
-function createTorAgent() {
-  return new SocksProxyAgent(TOR_SOCKS);
+function createTorAgent(circuitToken) {
+  return getIsolatedTorAgent(circuitToken);
 }
+
 
 /**
  * torGet(url, options?)
@@ -33,10 +40,9 @@ function createTorAgent() {
  * @returns {Promise<import('axios').AxiosResponse>}
  */
 async function torGet(url, options = {}) {
-  const agent = createTorAgent();
-
-  // Destructure timeout + headers out so they don't override our converted values
-  const { timeout: timeoutSec, headers: extraHeaders, ...restOptions } = options;
+  // Destructure timeout + headers + circuitToken out so they don't override our converted values
+  const { timeout: timeoutSec, headers: extraHeaders, circuitToken, ...restOptions } = options;
+  const agent = createTorAgent(circuitToken);
 
   return axios.get(url, {
     httpAgent : agent,
@@ -68,4 +74,13 @@ async function checkTorConnectivity() {
   }
 }
 
-module.exports = { torGet, checkTorConnectivity, TOR_SOCKS };
+module.exports = {
+  torGet,
+  createTorAgent,
+  checkTorConnectivity,
+  cycleTorCircuit: cycleCircuit,
+  getCircuitStatus,
+  configureAutoCycle,
+  TOR_SOCKS,
+};
+

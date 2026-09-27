@@ -10,14 +10,18 @@ import BlockchainScraper from './components/BlockchainScraper';
 import CryptoForensics from './components/CryptoForensics';
 import PgpIdentitiesTab from './components/PgpIdentitiesTab';
 import NetworkGraphExplorer from './components/NetworkGraphExplorer';
-import { Loader2, AlertCircle, Terminal, Camera, ListFilter, ExternalLink, Coins, ShieldAlert, Key, Share2 } from 'lucide-react';
+import TorCircuitModal from './components/TorCircuitModal';
+import { Loader2, AlertCircle, Terminal, Camera, ListFilter, ExternalLink, Coins, ShieldAlert, Key, Share2, RotateCw } from 'lucide-react';
 
 export default function App() {
   const [torStatus, setTorStatus] = useState(null);
   const [checkingTor, setCheckingTor] = useState(false);
+  const [circuitModalOpen, setCircuitModalOpen] = useState(false);
+  const [isCyclingCircuit, setIsCyclingCircuit] = useState(false);
 
   // Active Main View Tab: 'results' | 'blockchain' | 'forensics' | 'graph' | 'pgp' | 'screenshots' | 'logs'
   const [activeTab, setActiveTab] = useState('results');
+
   const [selectedBlockchainUrl, setSelectedBlockchainUrl] = useState('');
   const [selectedForensicAddress, setSelectedForensicAddress] = useState('');
   const [selectedGraphAddress, setSelectedGraphAddress] = useState('');
@@ -83,10 +87,45 @@ export default function App() {
     }
   };
 
+  // ── Quick Cycle Tor Circuit ─────────────────────────────────────────
+  const handleQuickCycleCircuit = async () => {
+    if (isCyclingCircuit) return;
+    setIsCyclingCircuit(true);
+    try {
+      const res = await fetch('/api/tor/circuit/cycle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ verifyExitIp: true }),
+      });
+      const data = await res.json();
+      if (data.success && data.result) {
+        setTorStatus((prev) => ({
+          ...prev,
+          ok: true,
+          ip: data.result.newIp || prev?.ip,
+          message: `Tor active. Exit IP: ${data.result.newIp || 'Rotated'}`,
+        }));
+        setLogs((prev) => [
+          {
+            tag: 'CIRCUIT',
+            message: `Tor Identity Rotated: ${data.result.circuitId} (Exit IP: ${data.result.newIp || 'Pending'}) via ${data.result.method}`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+          ...prev,
+        ]);
+      }
+    } catch (err) {
+      console.error('Failed to cycle Tor circuit:', err);
+    } finally {
+      setIsCyclingCircuit(false);
+    }
+  };
+
   useEffect(() => {
     fetchTorStatus();
     fetchScreenshots();
   }, []);
+
 
   // ── Execute Search with Real-Time SSE Log Streaming ──────────────────
   const handleSearch = async (searchTerm) => {
@@ -491,7 +530,11 @@ export default function App() {
         torStatus={torStatus}
         checkingTor={checkingTor}
         onRefreshTor={fetchTorStatus}
+        onOpenCircuitModal={() => setCircuitModalOpen(true)}
+        isCyclingCircuit={isCyclingCircuit}
+        onQuickCycleCircuit={handleQuickCycleCircuit}
       />
+
 
       {/* Main Container */}
       <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -828,7 +871,24 @@ export default function App() {
         </div>
       )}
 
+      {/* Tor Circuit Manager Modal */}
+      <TorCircuitModal
+        isOpen={circuitModalOpen}
+        onClose={() => setCircuitModalOpen(false)}
+        onCircuitCycled={(cycleResult) => {
+          if (cycleResult.newIp) {
+            setTorStatus((prev) => ({
+              ...prev,
+              ok: true,
+              ip: cycleResult.newIp,
+              message: `Tor active. Exit IP: ${cycleResult.newIp}`,
+            }));
+          }
+        }}
+      />
+
       {/* Footer */}
+
       <footer className="w-full border-t border-zinc-800 bg-zinc-950 py-4 px-4 sm:px-6 text-xs text-zinc-500 mt-auto">
         <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
           <span>GENGAR OSINT // Powered by Tor, Ahmia & Playwright</span>

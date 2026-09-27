@@ -74,6 +74,8 @@ Traditional OSINT tools struggle with the volatility and latency of hidden servi
 - **🔑 PGP Identity & Cross-Onion Linker**: RFC 4880 OpenPGP parsing of public key blocks to extract 40-character fingerprints, Key IDs, and User IDs. Automatically links distinct `.onion` domains operated by the same entity and checks public keyservers (`keys.openpgp.org`) over Tor.
 - **🕸️ Interactive Entity Network Graph**: 60 FPS force-directed canvas graph mapping multi-hop transaction flows, co-spent wallet clusters, peeling chains, mixer signatures, PGP identities, and OFAC threat actors with an interactive inspector drawer.
 - **⚖️ Court-Ready PDF & STIX 2.1 Export**: Federal Rules of Evidence (FRE 902(14)) self-authenticating digital evidence reports with print-to-PDF pagination, Chain of Custody audit trails, cryptographic SHA-256 integrity seals, and OASIS STIX 2.1 JSON bundles for SIEM/MISP/OpenCTI ingestion.
+- **🔄 Tor Circuit Cycling & Identity Rotation**: On-demand Tor ControlPort `SIGNAL NEWNYM` combined with RFC 1928 SOCKS5 stream isolation (`IsolateSOCKSAuth`), providing instant exit IP rotation, zero-cooldown circuit switching, and automated background anti-blocking intervals.
+
 
 - **🔒 API Key Protection**: Optional Bearer token authorization (`GENGAR_API_KEY`) for secure remote deployments while keeping Docker healthchecks open.
 
@@ -173,6 +175,10 @@ Available directly within the Web UI dashboard or programmatically via `/api/for
 ### Health & Tor Status
 - `GET /api/health` — Service health check & active proxy status.
 - `GET /api/tor-status` — Verifies Tor circuit connectivity and exit node IP.
+- `GET /api/tor/circuit/status` — Get active circuit ID, exit IP, control port status, and rotation history.
+- `POST /api/tor/circuit/cycle` — Cycle Tor identity via SIGNAL NEWNYM and SOCKS5 stream isolation.
+- `POST /api/tor/circuit/auto-cycle` — Configure periodic automated background circuit rotation interval.
+
 
 ### Search & Prober
 - `GET /api/search?q=<query>&probe=true` — Search Ahmia and optionally probe live hidden services.
@@ -214,6 +220,9 @@ Copy `.env.example` to `.env` to configure your environment:
 | `HOST` | `0.0.0.0` | `0.0.0.0` | Host binding address |
 | `TOR_SOCKS` | `socks5h://127.0.0.1:9050` | `socks5h://tor:9050` | Tor SOCKS5 proxy URL |
 | `TOR_HOST_PORT` | `9052` | `9052` | Host port mapped to Tor container |
+| `TOR_CONTROL_HOST` | `127.0.0.1` | `tor` | Tor ControlPort hostname |
+| `TOR_CONTROL_PORT` | `9051` | `9051` | Tor ControlPort TCP port for SIGNAL NEWNYM |
+| `TOR_CONTROL_PASSWORD` | *(empty)* | *(empty)* | Optional Tor ControlPort authentication password |
 | `GENGAR_API_KEY` | *(empty)* | *(empty)* | Optional Bearer token for API authentication |
 | `GENGAR_EXAMINER` | `OPERATOR_LOCAL` | `OPERATOR_LOCAL` | Default examiner identifier recorded in evidence |
 | `GENGAR_SCREENSHOT_QUOTA` | `200` | `200` | Maximum screenshots stored before FIFO eviction |
@@ -232,8 +241,9 @@ Copy `.env.example` to `.env` to configure your environment:
 - [x] OpenPGP RFC 4880 parsing & cross-onion entity correlation
 - [x] **Interactive Visual Entity Graph**: Force-directed network visualization of transaction hops, co-spent clusters, and threat actors
 - [x] **Court-Ready PDF & STIX 2.1 Reports**: Automated certified forensic PDF documentation and SIEM ingestion
+- [x] **Tor Circuit Cycling**: On-demand NEWNYM signaling and SOCKS5 stream isolation for automated circuit rotation
 - [ ] **Multi-chain tracking**: Support for EVM (Ethereum, Arbitrum) and TRON (USDT TRC-20)
-- [ ] **Tor Circuit Cycling**: On-demand NEWNYM signaling for automated circuit rotation
+
 
 ---
 

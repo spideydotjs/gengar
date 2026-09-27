@@ -10,7 +10,12 @@
 const express  = require('express');
 const { searchAhmia }  = require('../ahmia');
 const { probeMany, probeOnion } = require('../prober');
-const { checkTorConnectivity }  = require('../torClient');
+const {
+  checkTorConnectivity,
+  cycleTorCircuit,
+  getCircuitStatus,
+  configureAutoCycle,
+} = require('../torClient');
 const { captureScreenshot, listScreenshots, deleteScreenshot } = require('../screenshot');
 const { scrapeBlockchainSite, listDossiers, getDossier } = require('../blockchainScraper');
 const {
@@ -54,6 +59,52 @@ router.get('/tor-status', async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// ── TOR CIRCUIT CYCLING ENDPOINTS ───────────────────────────────────
+
+/**
+ * @route  GET /api/tor/circuit/status
+ * @desc   Get current circuit token, exit IP, control port status & history
+ */
+router.get('/tor/circuit/status', async (req, res) => {
+  try {
+    const status = getCircuitStatus();
+    res.json({ success: true, circuit: status });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * @route  POST /api/tor/circuit/cycle
+ * @desc   Cycle Tor identity via SIGNAL NEWNYM and SOCKS5 stream isolation
+ * @body   { verifyExitIp?: boolean }
+ */
+router.post('/tor/circuit/cycle', async (req, res) => {
+  try {
+    const verifyExitIp = req.body?.verifyExitIp !== false;
+    const result = await cycleTorCircuit({ verifyExitIp });
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
+ * @route  POST /api/tor/circuit/auto-cycle
+ * @desc   Configure periodic automated circuit cycling
+ * @body   { intervalMinutes: number }
+ */
+router.post('/tor/circuit/auto-cycle', (req, res) => {
+  try {
+    const { intervalMinutes } = req.body || {};
+    const config = configureAutoCycle(intervalMinutes);
+    res.json({ success: true, config });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
 // ── GET /api/search ────────────────────────────────────────────────
 /**

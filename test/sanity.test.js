@@ -302,3 +302,65 @@ describe('Court-Ready Forensic PDF/HTML & STIX 2.1 Engine', () => {
   });
 });
 
+// Test Suite 8: Tor Circuit Manager & Identity Rotation
+describe('Tor Circuit Manager & Stream Isolation Engine', () => {
+  const {
+    buildIsolatedSocksUrl,
+    getIsolatedTorAgent,
+    cycleCircuit,
+    getCircuitStatus,
+    configureAutoCycle,
+  } = require('../src/torCircuitManager');
+
+  test('builds SOCKS5 URL injecting credentials for Tor stream isolation (IsolateSOCKSAuth)', () => {
+    const customToken = 'gengar_test_token_123';
+    const socksUrl = buildIsolatedSocksUrl(customToken);
+    assert.ok(socksUrl.startsWith('socks5h://'));
+    assert.ok(socksUrl.includes(customToken));
+    assert.ok(socksUrl.includes('gengar_auth'));
+  });
+
+  test('generates valid SocksProxyAgent bound to isolated circuit identity', () => {
+    const agent = getIsolatedTorAgent('gengar_agent_test');
+    assert.ok(agent);
+    assert.strictEqual(typeof agent, 'object');
+  });
+
+  test('retrieves circuit telemetry status with control port diagnostics and history', () => {
+    const status = getCircuitStatus();
+    assert.ok(status.activeCircuitId);
+    assert.ok(status.activeCircuitId.startsWith('gengar_'));
+    assert.strictEqual(status.streamIsolationEnabled, true);
+    assert.ok(status.controlPortConfig);
+    assert.strictEqual(typeof status.controlPortConfig.port, 'number');
+    assert.ok(Array.isArray(status.recentCycles));
+  });
+
+  test('cycles Tor circuit token and records rotation history', async () => {
+    const initialStatus = getCircuitStatus();
+    const initialToken = initialStatus.activeCircuitId;
+
+    const cycleResult = await cycleCircuit({ verifyExitIp: false });
+    assert.strictEqual(cycleResult.success, true);
+    assert.notStrictEqual(cycleResult.circuitId, initialToken);
+    assert.strictEqual(cycleResult.previousCircuitId, initialToken);
+    assert.ok(cycleResult.method === 'CONTROL_PORT_SIGNAL_NEWNYM' || cycleResult.method === 'SOCKS5_STREAM_ISOLATION');
+    assert.strictEqual(typeof cycleResult.durationMs, 'number');
+
+    const updatedStatus = getCircuitStatus();
+    assert.strictEqual(updatedStatus.activeCircuitId, cycleResult.circuitId);
+    assert.ok(updatedStatus.recentCycles.length > 0);
+  });
+
+  test('configures and disables automated circuit cycling intervals safely', () => {
+    const enabled = configureAutoCycle(5);
+    assert.strictEqual(enabled.enabled, true);
+    assert.strictEqual(enabled.intervalMinutes, 5);
+
+    const disabled = configureAutoCycle(0);
+    assert.strictEqual(disabled.enabled, false);
+    assert.strictEqual(disabled.intervalMinutes, 0);
+  });
+});
+
+
